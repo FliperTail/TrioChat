@@ -5,7 +5,7 @@
 <title>TrioChat-demo</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; }
-#username-page, #chat-page { display:none; width:100%; max-width:600px; flex-direction:column; align-items:center; }
+#username-page, #chat-page { display:none; width:100%; max-width:700px; flex-direction:column; align-items:center; }
 #username-page input { padding:10px; font-size:16px; }
 #username-page button { margin-left:10px; padding:10px 20px; font-size:16px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
 #error { color:red; margin-top:10px; text-align:center; }
@@ -13,13 +13,17 @@ h2 { text-align:center; background:#007bff; color:white; padding:10px 20px; marg
 #room-select { text-align:center; margin:10px 0; }
 #room-select button { margin:0 5px; padding:5px 10px; cursor:pointer; border:none; border-radius:5px; background:#ccc; color:black; }
 #room-select button.active { background:#007bff; color:white; }
-.chat-container { display:flex; flex-direction:column; width:100%; height:500px; background:#fff; border:1px solid #ccc; border-radius:5px; overflow:hidden; }
+.chat-container { display:flex; width:100%; height:500px; background:#fff; border:1px solid #ccc; border-radius:5px; overflow:hidden; }
+#user-list { width:150px; border-right:1px solid #ccc; background:#f9f9f9; padding:10px; overflow-y:auto; }
+#user-list h4 { margin-top:0; }
+#chat-area { flex:1; display:flex; flex-direction:column; }
 #chat-box { flex:1; padding:10px; overflow-y:auto; background:#f9f9f9; }
 .msg { margin:5px 0; padding:8px 12px; background:#e1f5fe; border-radius:5px; }
 #message-form { display:flex; padding:10px; border-top:1px solid #ccc; background:#eee; }
 #message-input { flex:1; padding:10px; border:1px solid #ccc; border-radius:5px; }
 button.send-btn { margin-left:10px; padding:10px 20px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
 button.send-btn:disabled { background:#999; cursor:not-allowed; }
+.user-item { padding:4px 6px; border-bottom:1px solid #ddd; }
 </style>
 </head>
 <body>
@@ -41,19 +45,24 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
   </div>
 
   <div class="chat-container">
-    <div id="chat-box"></div>
-    <form id="message-form">
-      <input type="text" id="message-input" placeholder="Type a message..." required />
-      <button class="send-btn" type="submit">Send</button>
-    </form>
+    <div id="user-list">
+      <h4>Online Users</h4>
+      <div id="users"></div>
+    </div>
+    <div id="chat-area">
+      <div id="chat-box"></div>
+      <form id="message-form">
+        <input type="text" id="message-input" placeholder="Type a message..." required />
+        <button class="send-btn" type="submit">Send</button>
+      </form>
+    </div>
   </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCH3EXgZ9FN_t_tEW10uR5YmHiX_pabzew",
   authDomain: "triochat-cbd25.firebaseapp.com",
@@ -79,31 +88,43 @@ const messageInput = document.getElementById('message-input');
 const sendButton = document.querySelector(".send-btn");
 const roomButtonsContainer = document.getElementById("room-select");
 let roomButtons = document.querySelectorAll(".room-btn");
+const usersDiv = document.getElementById("users");
 
 // State
 let username = "";
 let currentRoom = "Room 1";
 let unsubscribe = null;
 
-usernamePage.style.display = "flex";
+// --- Helper: Update online users ---
+function updateOnlineUsers() {
+  const q = query(collection(db, "onlineUsers"));
+  onSnapshot(q, snapshot => {
+    usersDiv.innerHTML = "";
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const userItem = document.createElement("div");
+      userItem.classList.add("user-item");
+      userItem.textContent = data.username;
+      usersDiv.appendChild(userItem);
+    });
+  });
+}
 
-// Check saved username
+// --- Username check / login ---
+usernamePage.style.display = "flex";
 const savedUsername = localStorage.getItem("triochat_username");
 if (savedUsername) {
   const usernameDoc = doc(db, "usernames", savedUsername);
   getDoc(usernameDoc).then(docSnap => {
     if (docSnap.exists()) {
       username = savedUsername;
-      usernamePage.style.display = "none";
-      chatPage.style.display = "flex";
-      loadRooms();
+      loginUser();
     } else {
       localStorage.removeItem("triochat_username");
     }
   });
 }
 
-// Enter username
 submitUsername.addEventListener("click", async () => {
   const name = usernameInput.value.trim();
   if (!name) return;
@@ -115,19 +136,30 @@ submitUsername.addEventListener("click", async () => {
     await setDoc(usernameDoc, { created: serverTimestamp() });
     username = name;
     localStorage.setItem("triochat_username", username);
-    usernamePage.style.display = "none";
-    chatPage.style.display = "flex";
-    loadRooms();
+    loginUser();
   }
 });
 
-// Load rooms from Firestore
+function loginUser() {
+  usernamePage.style.display = "none";
+  chatPage.style.display = "flex";
+  // Add user to online users
+  setDoc(doc(db,"onlineUsers",username), { username });
+  updateOnlineUsers();
+  loadRooms();
+}
+
+// Remove user from online list when leaving
+window.addEventListener("beforeunload", async () => {
+  await deleteDoc(doc(db,"onlineUsers",username));
+});
+
+// --- Rooms ---
 async function loadRooms() {
   const roomSnap = await getDocs(collection(db, "rooms"));
   roomButtonsContainer.querySelectorAll('.room-btn').forEach(btn=>{
     if(!["Room 1","Room 2","Room 3"].includes(btn.dataset.room)) btn.remove();
   });
-
   roomSnap.forEach(doc => {
     const data = doc.data();
     if (data.private && !data.allowedUsers.includes(username)) return;
@@ -138,7 +170,6 @@ async function loadRooms() {
   startChat(currentRoom);
 }
 
-// Add room button
 function addRoomButton(name) {
   if (document.querySelector(`.room-btn[data-room='${name}']`)) return;
   const btn = document.createElement("button");
@@ -148,7 +179,6 @@ function addRoomButton(name) {
   roomButtonsContainer.insertBefore(btn, document.getElementById("create-room-btn"));
 }
 
-// Add listeners
 function addRoomListeners() {
   roomButtons = document.querySelectorAll(".room-btn");
   roomButtons.forEach(btn => {
@@ -181,18 +211,16 @@ document.getElementById("create-room-btn").addEventListener("click", async () =>
   addRoomListeners();
 });
 
-// Chat listener
+// --- Chat listener ---
 function startChat(room) {
   chatBox.innerHTML = "";
   if (unsubscribe) unsubscribe();
-
   const q = query(collection(db, "messages"), orderBy("timestamp"));
   unsubscribe = onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.room !== room) return;
-
       const msg = document.createElement("div");
       msg.classList.add("msg");
       msg.textContent = `${data.username}: ${data.text}`;
@@ -202,14 +230,14 @@ function startChat(room) {
   });
 }
 
-// Send message
+// --- Send message ---
 messageForm.addEventListener("submit", async e => {
   e.preventDefault();
   const text = messageInput.value.trim();
   if (!text) return;
   messageInput.value = "";
   sendButton.disabled = true;
-  setTimeout(()=>sendButton.disabled=false,500); // prevent spamming
+  setTimeout(()=>sendButton.disabled=false,500);
   await addDoc(collection(db,"messages"),{ username, text, room:currentRoom, timestamp:serverTimestamp() });
 });
 </script>
