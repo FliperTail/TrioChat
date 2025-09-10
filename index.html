@@ -76,6 +76,7 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
     </div>
   </div>
 </div>
+
 <div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
 
 <script type="module">
@@ -359,7 +360,8 @@ function addRoomButton(name){
 function addRoomListeners(){
   roomButtons = document.querySelectorAll(".room-btn");
   roomButtons.forEach(btn=>{
-    btn.onclick = ()=>{const selectedRoom = btn.dataset.room;
+    btn.onclick = ()=>{
+      const selectedRoom = btn.dataset.room;
       if(selectedRoom===currentRoom) return;
       currentRoom=selectedRoom;
       setActiveRoomButton();
