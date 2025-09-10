@@ -14,7 +14,7 @@ h2 { text-align:center; background:#007bff; color:white; padding:10px 20px; marg
 #room-select button { margin:0 5px; padding:5px 10px; cursor:pointer; border:none; border-radius:5px; background:#ccc; color:black; }
 #room-select button.active { background:#007bff; color:white; }
 .chat-container { display:flex; width:100%; height:500px; background:#fff; border:1px solid #ccc; border-radius:5px; overflow:hidden; }
-#user-list { width:180px; border-right:1px solid #ccc; background:#f9f9f9; padding:10px; overflow-y:auto; }
+#user-list { width:200px; border-right:1px solid #ccc; background:#f9f9f9; padding:10px; overflow-y:auto; }
 #user-list h4 { margin-top:0; }
 #chat-area { flex:1; display:flex; flex-direction:column; }
 #chat-box { flex:1; padding:10px; overflow-y:auto; background:#f9f9f9; }
@@ -35,6 +35,15 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
 #dm-modal .modal-content { background:#fff; padding:20px; border-radius:5px; width:300px; text-align:center; }
 #dm-modal input { width:80%; padding:8px; margin-bottom:10px; }
 #dm-modal button { padding:8px 12px; margin:0 5px; }
+
+/* My Status box */
+#my-status { margin-top:15px; padding-top:10px; border-top:1px solid #ccc; }
+#my-status h4 { margin:0 0 5px; }
+#my-username { font-weight:bold; margin-bottom:5px; }
+.status-buttons { display:flex; gap:5px; margin-top:5px; }
+.status-buttons button { flex:1; font-size:12px; padding:4px; border:none; border-radius:4px; cursor:pointer; }
+#online-btn { background:#28a745; color:white; }
+#dnd-btn { background:#ffc107; color:black; }
 </style>
 </head>
 <body>
@@ -59,6 +68,16 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
     <div id="user-list">
       <h4>Online Users</h4>
       <div id="users"></div>
+
+      <!-- My Status -->
+      <div id="my-status">
+        <h4>My Status</h4>
+        <div id="my-username"></div>
+        <div class="status-buttons">
+          <button id="online-btn">Online</button>
+          <button id="dnd-btn">Do Not Disturb</button>
+        </div>
+      </div>
     </div>
     <div id="chat-area">
       <div id="chat-box"></div>
@@ -117,13 +136,19 @@ const dmUsernameInput = document.getElementById("dm-username");
 const dmSendBtn = document.getElementById("dm-send-btn");
 const dmCancelBtn = document.getElementById("dm-cancel-btn");
 
+const myUsernameDiv = document.getElementById("my-username");
+const onlineBtn = document.getElementById("online-btn");
+const dndBtn = document.getElementById("dnd-btn");
+
 let username = "";
+let userStatus = "online"; // default
 let currentRoom = "Room 1";
 let unsubscribeMessages = null;
 let blockedUsers = JSON.parse(localStorage.getItem("blockedUsers") || "[]");
 const onlineUsersMap = new Map();
 let unsubscribeRooms = null;
 
+// --- Update Online Users ---
 function updateOnlineUsers() {
   const onlineRef = collection(db,"onlineUsers");
 
@@ -131,7 +156,7 @@ function updateOnlineUsers() {
   setInterval(() => {
     setDoc(
       doc(db,"onlineUsers",username),
-      { username, lastSeen: serverTimestamp() },
+      { username, lastSeen: serverTimestamp(), status:userStatus },
       { merge:true }
     );
   }, 5000);
@@ -139,22 +164,19 @@ function updateOnlineUsers() {
   // live update
   onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
-
-    // Clear and rebuild list every time (prevents ghost users staying)
     usersDiv.innerHTML = "";
     onlineUsersMap.clear();
 
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       const lastSeen = data.lastSeen?.toMillis() || 0;
-
-      // skip stale (offline) or yourself
       if (lastSeen + 10000 <= now || data.username === username) return;
 
-      // render user
       const userItem = document.createElement("div");
       userItem.classList.add("user-item");
-      userItem.innerHTML = `<div class="user-name">${data.username}</div>`;
+
+      const statusLabel = data.status === "dnd" ? " (DND)" : "";
+      userItem.innerHTML = `<div class="user-name">${data.username}${statusLabel}</div>`;
 
       const btns = document.createElement("div");
       btns.classList.add("user-buttons");
@@ -179,6 +201,18 @@ function updateOnlineUsers() {
   });
 }
 
+// --- Status Buttons ---
+onlineBtn.onclick = () => {
+  userStatus = "online";
+  myUsernameDiv.textContent = `${username} (Online)`;
+  setDoc(doc(db,"onlineUsers",username), { status:userStatus }, { merge:true });
+};
+dndBtn.onclick = () => {
+  userStatus = "dnd";
+  myUsernameDiv.textContent = `${username} (DND)`;
+  setDoc(doc(db,"onlineUsers",username), { status:userStatus }, { merge:true });
+};
+
 // --- Block/unblock ---
 function toggleBlock(name, btn) {
   if (blockedUsers.includes(name)) {
@@ -197,7 +231,6 @@ function openDMModal(user) {
   dmUsernameInput.value = user;
   dmModal.style.display = "flex";
 }
-
 dmSendBtn.onclick = async ()=>{
   const otherUser = dmUsernameInput.value.trim();
   if (!otherUser) return;
@@ -234,10 +267,11 @@ function checkLogin(name){
   username = name;
   usernamePage.style.display="none";
   chatPage.style.display="flex";
-  setDoc(doc(db,"onlineUsers",username), { username, lastSeen:serverTimestamp() });
+  myUsernameDiv.textContent = `${username} (Online)`; // default
+  setDoc(doc(db,"onlineUsers",username), { username, lastSeen:serverTimestamp(), status:userStatus });
   updateOnlineUsers();
   loadRoomsRealtime();
-  startChat(currentRoom); // ✅ Start chat immediately after login
+  startChat(currentRoom);
 }
 
 // Remove self on exit
@@ -260,7 +294,7 @@ function loadRoomsRealtime() {
     });
     addRoomListeners();
     setActiveRoomButton();
-    startChat(currentRoom); // ✅ Ensure chat loads when rooms update
+    startChat(currentRoom);
   });
 }
 
@@ -272,7 +306,6 @@ function addRoomButton(name){
   btn.textContent=name;
   roomButtonsContainer.insertBefore(btn, document.getElementById("create-room-btn"));
 }
-
 function addRoomListeners(){
   roomButtons = document.querySelectorAll(".room-btn");
   roomButtons.forEach(btn=>{
@@ -285,7 +318,6 @@ function addRoomListeners(){
     };
   });
 }
-
 function setActiveRoomButton(){
   roomButtons.forEach(btn=>{
     btn.classList.toggle("active", btn.dataset.room===currentRoom);
