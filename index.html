@@ -4,136 +4,26 @@
 <meta charset="UTF-8">
 <title>TrioChat-demo</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background: #f0f0f0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
-/* Pages */
-#username-page, #chat-page {
-  display: none;
-  width: 100%;
-  max-width: 600px;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* Username page */
-#username-page input {
-  padding: 10px;
-  font-size: 16px;
-}
-#username-page button {
-  margin-left: 10px;
-  padding: 10px 20px;
-  font-size: 16px;
-  border: none;
-  background: #007bff;
-  color: white;
-  border-radius: 5px;
-  cursor: pointer;
-}
-#error {
-  color: red;
-  margin-top: 10px;
-  text-align: center;
-}
-
-/* Chat page header */
-h2 {
-  text-align: center;
-  background: #007bff;
-  color: white;
-  padding: 10px 20px;
-  margin: 10px 0;
-  border-radius: 5px;
-  display: inline-block;
-}
-
-/* Room buttons */
-#room-select {
-  text-align: center;
-  margin: 10px 0;
-}
-#room-select button {
-  margin: 0 5px;
-  padding: 5px 10px;
-  cursor: pointer;
-  border: none;
-  border-radius: 5px;
-  background: #ccc;
-  color: black;
-}
-#room-select button.active {
-  background: #007bff;
-  color: white;
-}
-
-/* Chat container */
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 500px;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-/* Chat messages */
-#chat-box {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
-  background: #f9f9f9;
-}
-
-/* Individual messages */
-.msg {
-  margin: 5px 0;
-  padding: 8px 12px;
-  background: #e1f5fe;
-  border-radius: 5px;
-}
-
-/* Input area */
-#message-form {
-  display: flex;
-  padding: 10px;
-  border-top: 1px solid #ccc;
-  background: #eee;
-}
-#message-input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
-button.send-btn {
-  margin-left: 10px;
-  padding: 10px 20px;
-  border: none;
-  background: #007bff;
-  color: white;
-  border-radius: 5px;
-  cursor: pointer;
-}
-button.send-btn:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; }
+#username-page, #chat-page { display:none; width:100%; max-width:600px; flex-direction:column; align-items:center; }
+#username-page input { padding:10px; font-size:16px; }
+#username-page button { margin-left:10px; padding:10px 20px; font-size:16px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
+#error { color:red; margin-top:10px; text-align:center; }
+h2 { text-align:center; background:#007bff; color:white; padding:10px 20px; margin:10px 0; border-radius:5px; display:inline-block; }
+#room-select { text-align:center; margin:10px 0; }
+#room-select button { margin:0 5px; padding:5px 10px; cursor:pointer; border:none; border-radius:5px; background:#ccc; color:black; }
+#room-select button.active { background:#007bff; color:white; }
+.chat-container { display:flex; flex-direction:column; width:100%; height:500px; background:#fff; border:1px solid #ccc; border-radius:5px; overflow:hidden; }
+#chat-box { flex:1; padding:10px; overflow-y:auto; background:#f9f9f9; }
+.msg { margin:5px 0; padding:8px 12px; background:#e1f5fe; border-radius:5px; }
+#message-form { display:flex; padding:10px; border-top:1px solid #ccc; background:#eee; }
+#message-input { flex:1; padding:10px; border:1px solid #ccc; border-radius:5px; }
+button.send-btn { margin-left:10px; padding:10px 20px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
+button.send-btn:disabled { background:#999; cursor:not-allowed; }
 </style>
 </head>
 <body>
 
-<!-- Username page -->
 <div id="username-page">
   <h2>Enter a username</h2>
   <input type="text" id="username-input" placeholder="Username" />
@@ -141,7 +31,6 @@ button.send-btn:disabled {
   <div id="error"></div>
 </div>
 
-<!-- Chat page -->
 <div id="chat-page">
   <h2>TrioChat</h2>
   <div id="room-select">
@@ -151,7 +40,6 @@ button.send-btn:disabled {
     <button id="create-room-btn" style="background:#28a745;color:white;">+ Create Room</button>
   </div>
 
-  <!-- Chat container -->
   <div class="chat-container">
     <div id="chat-box"></div>
     <form id="message-form">
@@ -163,8 +51,7 @@ button.send-btn:disabled {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, serverTimestamp, query, orderBy, onSnapshot } 
-from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCH3EXgZ9FN_t_tEW10uR5YmHiX_pabzew",
@@ -207,8 +94,7 @@ if (savedUsername) {
       username = savedUsername;
       usernamePage.style.display = "none";
       chatPage.style.display = "flex";
-      setActiveRoomButton();
-      startChat(currentRoom);
+      loadRooms();
     } else {
       localStorage.removeItem("triochat_username");
     }
@@ -218,10 +104,8 @@ if (savedUsername) {
 submitUsername.addEventListener("click", async () => {
   const name = usernameInput.value.trim();
   if (!name) return;
-
   const usernameDoc = doc(db, "usernames", name);
   const docSnap = await getDoc(usernameDoc);
-
   if (docSnap.exists()) {
     errorDiv.textContent = "Username is already taken.";
   } else {
@@ -230,27 +114,45 @@ submitUsername.addEventListener("click", async () => {
     localStorage.setItem("triochat_username", username);
     usernamePage.style.display = "none";
     chatPage.style.display = "flex";
-    setActiveRoomButton();
-    startChat(currentRoom);
+    loadRooms();
   }
 });
 
-// Room switching
+// Load rooms from Firestore
+async function loadRooms() {
+  const roomSnap = await getDocs(collection(db, "rooms"));
+  roomSnap.forEach(doc => {
+    const data = doc.data();
+    if (data.private && !data.allowedUsers.includes(username)) return; // skip rooms user can't see
+    addRoomButton(doc.id);
+  });
+  addRoomListeners();
+  startChat(currentRoom);
+}
+
+// Add room button
+function addRoomButton(name) {
+  if (document.querySelector(`.room-btn[data-room='${name}']`)) return; // already exists
+  const btn = document.createElement("button");
+  btn.classList.add("room-btn");
+  btn.dataset.room = name;
+  btn.textContent = name;
+  roomButtonsContainer.insertBefore(btn, document.getElementById("create-room-btn"));
+}
+
+// Add listeners
 function addRoomListeners() {
   roomButtons = document.querySelectorAll(".room-btn");
   roomButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.onclick = () => {
       const selectedRoom = btn.dataset.room;
       if (selectedRoom === currentRoom) return;
       currentRoom = selectedRoom;
       setActiveRoomButton();
-      if (unsubscribe) unsubscribe();
       startChat(currentRoom);
-    });
+    }
   });
 }
-
-addRoomListeners();
 
 function setActiveRoomButton() {
   roomButtons.forEach(btn => {
@@ -262,70 +164,51 @@ function setActiveRoomButton() {
 document.getElementById("create-room-btn").addEventListener("click", async () => {
   const roomName = prompt("Enter a name for your private room:");
   if (!roomName) return;
-
-  const allowedUsersInput = prompt("Enter usernames allowed in this room, comma-separated:");
-  const allowedUsers = allowedUsersInput ? allowedUsersInput.split(",").map(u => u.trim()) : [];
+  const allowedUsersInput = prompt("Enter usernames allowed (comma-separated):");
+  const allowedUsers = allowedUsersInput ? allowedUsersInput.split(",").map(u=>u.trim()) : [];
   if (!allowedUsers.includes(username)) allowedUsers.push(username);
 
-  // Save private room in Firestore
-  const roomDoc = doc(db, "rooms", roomName);
-  await setDoc(roomDoc, { private: true, allowedUsers });
-
-  // Add button dynamically
-  const btn = document.createElement("button");
-  btn.classList.add("room-btn");
-  btn.dataset.room = roomName;
-  btn.textContent = roomName;
-  roomButtonsContainer.insertBefore(btn, document.getElementById("create-room-btn"));
+  await setDoc(doc(db,"rooms",roomName), { private:true, allowedUsers });
+  addRoomButton(roomName);
   addRoomListeners();
 });
 
-// Start chat
+// Chat listener
 function startChat(room) {
   chatBox.innerHTML = "";
-  const q = query(collection(db, "messages"), orderBy("timestamp"));
-
   if (unsubscribe) unsubscribe();
 
+  const q = query(collection(db, "messages"), orderBy("timestamp"));
   unsubscribe = onSnapshot(q, snapshot => {
     chatBox.innerHTML = "";
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (data.room === room) {
-        // Check if room is private
-        const roomDocRef = doc(db, "rooms", room);
-        getDoc(roomDocRef).then(roomSnap => {
-          if (!roomSnap.exists() || (roomSnap.data().private && !roomSnap.data().allowedUsers.includes(username))) {
-            return; // user not allowed
-          } else {
-            const msg = document.createElement("div");
-            msg.classList.add("msg");
-            msg.textContent = `${data.username}: ${data.text}`;
-            chatBox.appendChild(msg);
-            chatBox.scrollTop = chatBox.scrollHeight;
-          }
-        });
-      }
+      if (data.room !== room) return;
+
+      const roomRef = doc(db,"rooms",room);
+      getDoc(roomRef).then(rSnap=>{
+        const roomData = rSnap.exists() ? rSnap.data() : { private:false };
+        if (roomData.private && !roomData.allowedUsers.includes(username)) return;
+
+        const msg = document.createElement("div");
+        msg.classList.add("msg");
+        msg.textContent = `${data.username}: ${data.text}`;
+        chatBox.appendChild(msg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
     });
   });
 }
 
-// Message submit with anti-spam
+// Send message
 messageForm.addEventListener("submit", async e => {
   e.preventDefault();
   const text = messageInput.value.trim();
   if (!text) return;
-
   messageInput.value = "";
   sendButton.disabled = true;
-  setTimeout(() => { sendButton.disabled = false; }, 500);
-
-  await addDoc(collection(db, "messages"), {
-    username,
-    text,
-    room: currentRoom,
-    timestamp: serverTimestamp()
-  });
+  setTimeout(()=>sendButton.disabled=false,500);
+  await addDoc(collection(db,"messages"),{ username, text, room:currentRoom, timestamp:serverTimestamp() });
 });
 </script>
 
