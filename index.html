@@ -13,17 +13,48 @@
       flex-direction: column;
       height: 100vh;
     }
+    #username-page, #chat-page {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    #username-page input {
+      padding: 10px;
+      font-size: 16px;
+    }
+    #username-page button {
+      margin-left: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #error {
+      color: red;
+      margin-top: 10px;
+    }
     #chat-box {
       flex: 1;
       overflow-y: auto;
       padding: 10px;
       background: #fff;
       border-bottom: 1px solid #ccc;
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
     }
     #message-form {
       display: flex;
       padding: 10px;
       background: #eee;
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
     }
     #message-input {
       flex: 1;
@@ -31,7 +62,7 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
-    button {
+    button.send-btn {
       margin-left: 10px;
       padding: 10px 20px;
       border: none;
@@ -49,23 +80,29 @@
   </style>
 </head>
 <body>
-  <h2 style="text-align:center;background:#007bff;color:white;padding:10px;">GitHub Chat</h2>
-  
+
+<div id="username-page">
+  <h2>Enter a username</h2>
+  <input type="text" id="username-input" placeholder="Username" />
+  <button id="submit-username">Enter Chat</button>
+  <div id="error"></div>
+</div>
+
+<div id="chat-page">
+  <h2 style="text-align:center;background:#007bff;color:white;padding:10px;">TrioChat</h2>
   <div id="chat-box"></div>
-  
   <form id="message-form">
     <input type="text" id="message-input" placeholder="Type a message..." required />
-    <button type="submit">Send</button>
+    <button class="send-btn" type="submit">Send</button>
   </form>
+</div>
 
-  <!-- Firebase SDK (v9) -->
-  <script type="module">
-    // Import Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } 
-      from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+  import { getFirestore, collection, doc, getDoc, setDoc, addDoc, serverTimestamp, query, orderBy, onSnapshot } 
+    from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-    const firebaseConfig = {
+  const firebaseConfig = {
     apiKey: "AIzaSyCH3EXgZ9FN_t_tEW10uR5YmHiX_pabzew",
     authDomain: "triochat-cbd25.firebaseapp.com",
     projectId: "triochat-cbd25",
@@ -73,41 +110,74 @@
     messagingSenderId: "240591787712",
     appId: "1:240591787712:web:7486c19c654a173eb4bf25",
     measurementId: "G-TFXZ6HSSHN"
-    };
+  };
 
-    // Init Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const chatBox = document.getElementById('chat-box');
-    const messageForm = document.getElementById('message-form');
-    const messageInput = document.getElementById('message-input');
+  const usernamePage = document.getElementById("username-page");
+  const chatPage = document.getElementById("chat-page");
+  const usernameInput = document.getElementById("username-input");
+  const submitUsername = document.getElementById("submit-username");
+  const errorDiv = document.getElementById("error");
 
-    // Load messages in real-time
+  const chatBox = document.getElementById('chat-box');
+  const messageForm = document.getElementById('message-form');
+  const messageInput = document.getElementById('message-input');
+
+  let username = "";
+
+  // Show username page initially
+  usernamePage.style.display = "flex";
+
+  submitUsername.addEventListener("click", async () => {
+    const name = usernameInput.value.trim();
+    if (!name) return;
+
+    const usernameDoc = doc(db, "usernames", name);
+    const docSnap = await getDoc(usernameDoc);
+
+    if (docSnap.exists()) {
+      errorDiv.textContent = "Username is already taken.";
+    } else {
+      // Save username in Firestore
+      await setDoc(usernameDoc, { created: serverTimestamp() });
+      username = name;
+      usernamePage.style.display = "none";
+      chatPage.style.display = "flex";
+      startChat();
+    }
+  });
+
+  function startChat() {
+    // Realtime messages
     const q = query(collection(db, "messages"), orderBy("timestamp"));
     onSnapshot(q, snapshot => {
       chatBox.innerHTML = "";
       snapshot.forEach(doc => {
         const msg = document.createElement("div");
         msg.classList.add("msg");
-        msg.textContent = doc.data().text;
+        msg.textContent = `${doc.data().username}: ${doc.data().text}`;
         chatBox.appendChild(msg);
       });
       chatBox.scrollTop = chatBox.scrollHeight;
     });
 
-    // Send new message
+    // Send new messages
     messageForm.addEventListener("submit", async e => {
       e.preventDefault();
       const text = messageInput.value.trim();
       if (text) {
         await addDoc(collection(db, "messages"), {
+          username,
           text,
           timestamp: serverTimestamp()
         });
         messageInput.value = "";
       }
     });
-  </script>
+  }
+</script>
+
 </body>
 </html>
