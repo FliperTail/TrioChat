@@ -97,15 +97,25 @@ let unsubscribe = null;
 
 // --- Helper: Update online users ---
 function updateOnlineUsers() {
-  const q = query(collection(db, "onlineUsers"));
-  onSnapshot(q, snapshot => {
+  const onlineRef = collection(db, "onlineUsers");
+
+  // Start updating user's lastSeen every 5 seconds
+  setInterval(() => {
+    setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() }, { merge: true });
+  }, 5000);
+
+  // Listen for all users
+  onSnapshot(onlineRef, snapshot => {
     usersDiv.innerHTML = "";
+    const now = Date.now();
     snapshot.forEach(doc => {
       const data = doc.data();
-      const userItem = document.createElement("div");
-      userItem.classList.add("user-item");
-      userItem.textContent = data.username;
-      usersDiv.appendChild(userItem);
+      if (data.lastSeen && data.lastSeen.toMillis() + 10000 > now) { // only show if lastSeen < 10s
+        const userItem = document.createElement("div");
+        userItem.classList.add("user-item");
+        userItem.textContent = data.username;
+        usersDiv.appendChild(userItem);
+      }
     });
   });
 }
