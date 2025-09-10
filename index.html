@@ -108,20 +108,22 @@ function updateOnlineUsers() {
     // Remove offline users
     for (let [name, el] of onlineUsersMap.entries()) {
       const userDoc = snapshot.docs.find(d=>d.id===name);
-      if (!userDoc || userDoc.data().lastSeen.toMillis() + 10000 <= now) {
+      if (!userDoc || !userDoc.data().lastSeen || userDoc.data().lastSeen.toMillis() + 10000 <= now) {
         el.remove();
         onlineUsersMap.delete(name);
       }
     }
-    // Add new users
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.lastSeen.toMillis() + 10000 > now && !onlineUsersMap.has(data.username)) {
-        const userItem = document.createElement("div");
-        userItem.classList.add("user-item");
-        userItem.textContent = data.username;
-        usersDiv.appendChild(userItem);
-        onlineUsersMap.set(data.username,userItem);
+    // Add or update users
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.lastSeen && data.lastSeen.toMillis() + 10000 > now) {
+        if (!onlineUsersMap.has(data.username)) {
+          const userItem = document.createElement("div");
+          userItem.classList.add("user-item");
+          userItem.textContent = data.username;
+          usersDiv.appendChild(userItem);
+          onlineUsersMap.set(data.username,userItem);
+        }
       }
     });
   });
@@ -216,42 +218,47 @@ document.getElementById("create-room-btn").addEventListener("click", async ()=>{
   addRoomListeners();
 });
 
-function startChat(room) {
+// --- Chat ---
+async function startChat(room) {
   chatBox.innerHTML = "";
-  if (unsubscribe) unsubscribe();
 
-  const q = query(
-    collection(db, "messages"),
-    orderBy("timestamp")
-  );
+  // Stop previous listener
+  if (unsubscribeMessages) unsubscribeMessages();
 
-  unsubscribe = onSnapshot(q, snapshot => {
+  // Check room permissions once
+  const roomRef = doc(db, "rooms", room);
+  const rSnap = await getDoc(roomRef);
+  const roomData = rSnap.exists() ? rSnap.data() : { private: false };
+  const allowed = !roomData.private || roomData.allowedUsers.includes(username);
+
+  if (!allowed) {
+    chatBox.innerHTML = "<div class='msg'>You don't have access to this room.</div>";
+    return;
+  }
+
+  // Listen to messages in this room
+  const q = query(collection(db, "messages"), orderBy("timestamp"));
+  unsubscribeMessages = onSnapshot(q, snapshot => {
     snapshot.docChanges().forEach(change => {
       const data = change.doc.data();
       if (data.room !== room) return;
 
-      const roomRef = doc(db, "rooms", room);
-      getDoc(roomRef).then(rSnap => {
-        const roomData = rSnap.exists() ? rSnap.data() : { private: false };
-        if (roomData.private && !roomData.allowedUsers.includes(username)) return;
-
-        if (change.type === "added") {
-          const msg = document.createElement("div");
-          msg.classList.add("msg");
-          msg.id = `msg-${change.doc.id}`;
-          msg.textContent = `${data.username}: ${data.text}`;
-          chatBox.appendChild(msg);
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }
-        if (change.type === "modified") {
-          const msgEl = document.getElementById(`msg-${change.doc.id}`);
-          if (msgEl) msgEl.textContent = `${data.username}: ${data.text}`;
-        }
-        if (change.type === "removed") {
-          const msgEl = document.getElementById(`msg-${change.doc.id}`);
-          if (msgEl) msgEl.remove();
-        }
-      });
+      if (change.type === "added") {
+        const msg = document.createElement("div");
+        msg.classList.add("msg");
+        msg.id = `msg-${change.doc.id}`;
+        msg.textContent = `${data.username}: ${data.text}`;
+        chatBox.appendChild(msg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+      if (change.type === "modified") {
+        const msgEl = document.getElementById(`msg-${change.doc.id}`);
+        if (msgEl) msgEl.textContent = `${data.username}: ${data.text}`;
+      }
+      if (change.type === "removed") {
+        const msgEl = document.getElementById(`msg-${change.doc.id}`);
+        if (msgEl) msgEl.remove();
+      }
     });
   });
 }
