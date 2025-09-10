@@ -139,9 +139,12 @@ function setActiveRoomButton() {
 function startChat(room) {
   chatBox.innerHTML = "";
   const q = query(collection(db, "messages"), orderBy("timestamp"));
-  
+
+  // Unsubscribe previous listener if exists
+  if (unsubscribe) unsubscribe();
+
   unsubscribe = onSnapshot(q, snapshot => {
-    chatBox.innerHTML = "";
+    chatBox.innerHTML = ""; // clear messages
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.room === room) {
@@ -152,14 +155,10 @@ function startChat(room) {
       }
     });
 
-    // Scroll smoothly to the bottom after messages are added
-    chatBox.scrollTo({
-      top: chatBox.scrollHeight,
-      behavior: "smooth"
-    });
+    // Scroll the chat-box itself to the bottom
+    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
-
 
 messageForm.addEventListener("submit", async e => {
   e.preventDefault();
