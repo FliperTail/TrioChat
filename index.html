@@ -59,7 +59,6 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
     <div id="user-list">
       <h4>Online Users</h4>
       <div id="users"></div>
-      <!-- Status box at the bottom -->
       <div id="status-box">
         <h5 id="status-username"></h5>
         <div id="status-buttons">
@@ -117,7 +116,7 @@ const onlineUsersMap = new Map();
 let unsubscribeRooms = null;
 let currentStatus = "online";
 
-// --- Update online users (kept exactly as before) ---
+// --- Update online users ---
 function updateOnlineUsers() {
   const onlineRef = collection(db,"onlineUsers");
   setInterval(() => {
@@ -176,8 +175,22 @@ function toggleBlock(name, btn) {
 
 // --- DM Modal ---
 function openDMModal(user) {
-  alert("Would open DM with " + user); // placeholder
+  dmUsernameInput.value = user;
+  dmModal.style.display = "flex";
 }
+
+dmSendBtn.onclick = async ()=>{
+  const otherUser = dmUsernameInput.value.trim();
+  if (!otherUser) return;
+  const roomName = [username, otherUser].sort().join("_DM_");
+  await setDoc(doc(db,"rooms",roomName), { private:true, allowedUsers:[username, otherUser] });
+  currentRoom = roomName;
+  setActiveRoomButton();
+  startChat(roomName);
+  dmModal.style.display = "none";
+  loadRoomsRealtime();
+}
+dmCancelBtn.onclick = ()=>dmModal.style.display="none";
 
 // --- Status controls ---
 function setStatus(newStatus) {
@@ -222,7 +235,7 @@ window.addEventListener("beforeunload", async ()=> {
   await deleteDoc(doc(db,"onlineUsers",username));
 });
 
-// --- Rooms real-time (unchanged) ---
+// --- Rooms real-time ---
 function loadRoomsRealtime() {
   const roomsRef = collection(db,"rooms");
   if(unsubscribeRooms) unsubscribeRooms();
@@ -269,7 +282,7 @@ function setActiveRoomButton(){
   });
 }
 
-// --- Chat (unchanged) ---
+// --- Chat ---
 let cachedMessages = [];
 async function startChat(room){
   chatBox.innerHTML="";
