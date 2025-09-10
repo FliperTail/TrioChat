@@ -359,8 +359,7 @@ function addRoomButton(name){
 function addRoomListeners(){
   roomButtons = document.querySelectorAll(".room-btn");
   roomButtons.forEach(btn=>{
-    btn.onclick = ()=>{
-      const selectedRoom = btn.dataset.room;
+    btn.onclick = ()=>{const selectedRoom = btn.dataset.room;
       if(selectedRoom===currentRoom) return;
       currentRoom=selectedRoom;
       setActiveRoomButton();
@@ -416,6 +415,51 @@ messageForm.addEventListener("submit", async e=>{
   sendButton.disabled=true;
   setTimeout(()=>sendButton.disabled=false,500);
   await addDoc(collection(db,"messages"), { username, text, room:currentRoom, timestamp:serverTimestamp() });
+});
+
+// --- LOGIN KEY SYSTEM ---
+function generateLoginKey(length=6){
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let key='';
+  for(let i=0;i<length;i++) key+=chars.charAt(Math.floor(Math.random()*chars.length));
+  return key;
+}
+
+// Generate Key Button
+const generateKeyBtn = document.createElement("button");
+generateKeyBtn.textContent = "Generate Login Key";
+generateKeyBtn.style.marginTop="10px";
+usernamePage.appendChild(generateKeyBtn);
+
+generateKeyBtn.addEventListener("click", async ()=>{
+  const name=usernameInput.value.trim();
+  if(!name){alert("Enter a username first!"); return;}
+  const usernameDoc=doc(db,"usernames",name);
+  const docSnap=await getDoc(usernameDoc);
+  if(!docSnap.exists()){alert("Username does not exist. Please register first."); return;}
+  const key = generateLoginKey();
+  await setDoc(doc(db,"loginKeys",name), { key, timestamp: serverTimestamp() });
+  alert(`Your login key for ${name} is:\n\n${key}\n\nUse this key to log in on another device.`);
+});
+
+// Login with Key Button
+const loginWithKeyBtn = document.createElement("button");
+loginWithKeyBtn.textContent = "Login with Key";
+loginWithKeyBtn.style.marginTop="5px";
+usernamePage.appendChild(loginWithKeyBtn);
+
+loginWithKeyBtn.addEventListener("click", async ()=>{
+  const name=usernameInput.value.trim();
+  if(!name){alert("Enter a username first!"); return;}
+  const keyInput = prompt("Enter your login key:");
+  if(!keyInput) return;
+  const keyDoc = await getDoc(doc(db,"loginKeys",name));
+  if(!keyDoc.exists()){alert("No key found for this username."); return;}
+  const data=keyDoc.data();
+  if(data.key!==keyInput){alert("Invalid key!"); return;}
+  localStorage.setItem("triochat_username", name);
+  checkLogin(name);
+  await deleteDoc(doc(db,"loginKeys",name));
 });
 </script>
 
