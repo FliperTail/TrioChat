@@ -178,6 +178,11 @@ const dmContainer = document.getElementById("dm-container");
 const dmWindows = new Map(); // Track open DM windows
 
 function openDMModal(otherUser) {
+  if (blockedUsers.includes(otherUser)) {
+    alert("You have ignored this user. You cannot DM them.");
+    return; // Prevent opening DM if user is ignored
+  }
+  
   if (dmWindows.has(otherUser)) return; // DM already open
 
   const dmWindow = document.createElement("div");
@@ -252,10 +257,10 @@ function openDMModal(otherUser) {
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       if (data.room !== roomName) return;
+      if (blockedUsers.includes(data.username)) return; // Skip messages from blocked users
       const msg = document.createElement("div");
       msg.textContent = `${data.username}: ${data.text}`;
       msg.style.margin = "2px 0";
-      if (blockedUsers.includes(data.username)) return;
       chatBox.appendChild(msg);
     });
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -266,6 +271,11 @@ function openDMModal(otherUser) {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
+    // Prevent sending if the recipient is blocked
+    if (blockedUsers.includes(otherUser)) {
+      alert("You have ignored this user. Cannot send DM.");
+      return;
+    }
     await addDoc(collection(db,"messages"), {
       username,
       text,
