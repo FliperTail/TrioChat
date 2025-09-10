@@ -216,22 +216,42 @@ document.getElementById("create-room-btn").addEventListener("click", async ()=>{
   addRoomListeners();
 });
 
-// --- Chat ---
-function startChat(room){
+function startChat(room) {
   chatBox.innerHTML = "";
-  if(unsubscribeMessages) unsubscribeMessages();
-  const q = query(collection(db,"messages"), orderBy("timestamp"));
-  unsubscribeMessages = onSnapshot(q, snapshot => {
+  if (unsubscribe) unsubscribe();
+
+  const q = query(
+    collection(db, "messages"),
+    orderBy("timestamp")
+  );
+
+  unsubscribe = onSnapshot(q, snapshot => {
     snapshot.docChanges().forEach(change => {
       const data = change.doc.data();
-      if(data.room !== room) return;
-      if(change.type === "added"){
-        const msg = document.createElement("div");
-        msg.classList.add("msg");
-        msg.textContent = `${data.username}: ${data.text}`;
-        chatBox.appendChild(msg);
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }
+      if (data.room !== room) return;
+
+      const roomRef = doc(db, "rooms", room);
+      getDoc(roomRef).then(rSnap => {
+        const roomData = rSnap.exists() ? rSnap.data() : { private: false };
+        if (roomData.private && !roomData.allowedUsers.includes(username)) return;
+
+        if (change.type === "added") {
+          const msg = document.createElement("div");
+          msg.classList.add("msg");
+          msg.id = `msg-${change.doc.id}`;
+          msg.textContent = `${data.username}: ${data.text}`;
+          chatBox.appendChild(msg);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        if (change.type === "modified") {
+          const msgEl = document.getElementById(`msg-${change.doc.id}`);
+          if (msgEl) msgEl.textContent = `${data.username}: ${data.text}`;
+        }
+        if (change.type === "removed") {
+          const msgEl = document.getElementById(`msg-${change.doc.id}`);
+          if (msgEl) msgEl.remove();
+        }
+      });
     });
   });
 }
