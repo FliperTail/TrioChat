@@ -140,11 +140,10 @@ function startChat(room) {
   chatBox.innerHTML = "";
   const q = query(collection(db, "messages"), orderBy("timestamp"));
 
-  // Unsubscribe previous listener if exists
   if (unsubscribe) unsubscribe();
 
   unsubscribe = onSnapshot(q, snapshot => {
-    chatBox.innerHTML = ""; // clear messages
+    chatBox.innerHTML = "";
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.room === room) {
@@ -155,7 +154,7 @@ function startChat(room) {
       }
     });
 
-    // Scroll the chat-box itself to the bottom
+    // Scroll only the chat-box content
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
