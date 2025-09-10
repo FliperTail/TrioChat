@@ -120,19 +120,21 @@ const dmCancelBtn = document.getElementById("dm-cancel-btn");
 let username = "";
 let currentRoom = "Room 1";
 let unsubscribeMessages = null;
-let unsubscribeRooms = null;
 let blockedUsers = JSON.parse(localStorage.getItem("blockedUsers") || "[]");
 const onlineUsersMap = new Map();
+let unsubscribeRooms = null;
 
-// --- Online Users ---
+// --- Online users ---
 function updateOnlineUsers() {
   const onlineRef = collection(db,"onlineUsers");
+
   setInterval(() => {
     setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() }, { merge:true });
   }, 5000);
 
   onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
+    // Remove offline users
     for (let [name, el] of onlineUsersMap.entries()) {
       const userDoc = snapshot.docs.find(d=>d.id===name);
       const lastSeen = userDoc?.data()?.lastSeen?.toMillis() || 0;
@@ -141,14 +143,18 @@ function updateOnlineUsers() {
         onlineUsersMap.delete(name);
       }
     }
+
+    // Add/update online users
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       const lastSeen = data.lastSeen?.toMillis() || 0;
-      if (lastSeen+10000 <= now || data.username===username) return;
+      if (lastSeen+10000 <= now || data.username === username) return;
+
       if (!onlineUsersMap.has(data.username)) {
         const userItem = document.createElement("div");
         userItem.classList.add("user-item");
         userItem.innerHTML = `<div class="user-name">${data.username}</div>`;
+
         const btns = document.createElement("div");
         btns.classList.add("user-buttons");
 
@@ -165,6 +171,7 @@ function updateOnlineUsers() {
         btns.appendChild(blockBtn);
         btns.appendChild(dmBtn);
         userItem.appendChild(btns);
+
         usersDiv.appendChild(userItem);
         onlineUsersMap.set(data.username,userItem);
       }
@@ -172,40 +179,42 @@ function updateOnlineUsers() {
   });
 }
 
-// --- Block ---
-function toggleBlock(name, btn){
-  if(blockedUsers.includes(name)){
+// --- Block/unblock ---
+function toggleBlock(name, btn) {
+  if (blockedUsers.includes(name)) {
     blockedUsers = blockedUsers.filter(n=>n!==name);
-    btn.textContent="Ignore";
+    btn.textContent = "Ignore";
   } else {
     blockedUsers.push(name);
-    btn.textContent="Unignore";
+    btn.textContent = "Unignore";
   }
-  localStorage.setItem("blockedUsers",JSON.stringify(blockedUsers));
+  localStorage.setItem("blockedUsers", JSON.stringify(blockedUsers));
   refreshMessages();
 }
 
-// --- DM ---
-function openDMModal(user){
+// --- DM Modal ---
+function openDMModal(user) {
   dmUsernameInput.value = user;
-  dmModal.style.display="flex";
+  dmModal.style.display = "flex";
 }
+
 dmSendBtn.onclick = async ()=>{
   const otherUser = dmUsernameInput.value.trim();
-  if(!otherUser) return;
-  const roomName = [username,otherUser].sort().join("_DM_");
-  await setDoc(doc(db,"rooms",roomName), { private:true, allowedUsers:[username,otherUser] }, { merge:true });
+  if (!otherUser) return;
+  const roomName = [username, otherUser].sort().join("_DM_");
+  await setDoc(doc(db,"rooms",roomName), { private:true, allowedUsers:[username, otherUser] });
   currentRoom = roomName;
   setActiveRoomButton();
   startChat(roomName);
-  dmModal.style.display="none";
-};
+  dmModal.style.display = "none";
+  loadRoomsRealtime();
+}
 dmCancelBtn.onclick = ()=>dmModal.style.display="none";
 
 // --- Username/Login ---
 usernamePage.style.display="flex";
 const savedUsername = localStorage.getItem("triochat_username");
-if(savedUsername) checkLogin(savedUsername);
+if (savedUsername) checkLogin(savedUsername);
 
 submitUsername.addEventListener("click", async ()=>{
   const name = usernameInput.value.trim();
@@ -235,11 +244,11 @@ window.addEventListener("beforeunload", async ()=> {
   await deleteDoc(doc(db,"onlineUsers",username));
 });
 
-// --- Rooms realtime ---
-function loadRoomsRealtime(){
+// --- Rooms real-time ---
+function loadRoomsRealtime() {
   const roomsRef = collection(db,"rooms");
   if(unsubscribeRooms) unsubscribeRooms();
-  unsubscribeRooms = onSnapshot(roomsRef, snapshot=>{
+  unsubscribeRooms = onSnapshot(roomsRef, snapshot => {
     roomButtonsContainer.querySelectorAll('.room-btn').forEach(btn=>{
       if(!["Room 1","Room 2","Room 3"].includes(btn.dataset.room)) btn.remove();
     });
@@ -255,16 +264,17 @@ function loadRoomsRealtime(){
 
 function addRoomButton(name){
   if(document.querySelector(`.room-btn[data-room='${name}']`)) return;
-  const btn = document.createElement("button");
+  const btn=document.createElement("button");
   btn.classList.add("room-btn");
   btn.dataset.room=name;
   btn.textContent=name;
   roomButtonsContainer.insertBefore(btn, document.getElementById("create-room-btn"));
 }
+
 function addRoomListeners(){
-  roomButtons=document.querySelectorAll(".room-btn");
+  roomButtons = document.querySelectorAll(".room-btn");
   roomButtons.forEach(btn=>{
-    btn.onclick=()=>{
+    btn.onclick = ()=>{
       const selectedRoom = btn.dataset.room;
       if(selectedRoom===currentRoom) return;
       currentRoom=selectedRoom;
@@ -273,9 +283,10 @@ function addRoomListeners(){
     };
   });
 }
+
 function setActiveRoomButton(){
   roomButtons.forEach(btn=>{
-    btn.classList.toggle("active",btn.dataset.room===currentRoom);
+    btn.classList.toggle("active", btn.dataset.room===currentRoom);
   });
 }
 
@@ -287,10 +298,11 @@ document.getElementById("create-room-btn").addEventListener("click", async ()=>{
   const allowedUsers = allowedUsersInput ? allowedUsersInput.split(",").map(u=>u.trim()) : [];
   if(!allowedUsers.includes(username)) allowedUsers.push(username);
   await setDoc(doc(db,"rooms",roomName), { private:true, allowedUsers });
+  loadRoomsRealtime();
 });
 
 // --- Chat ---
-let cachedMessages=[];
+let cachedMessages = [];
 async function startChat(room){
   chatBox.innerHTML="";
   cachedMessages=[];
@@ -314,11 +326,12 @@ async function startChat(room){
     refreshMessages();
   });
 }
+
 function refreshMessages(){
   chatBox.innerHTML="";
   cachedMessages.forEach(data=>{
     if(blockedUsers.includes(data.username)) return;
-    const msg=document.createElement("div");
+    const msg = document.createElement("div");
     msg.classList.add("msg");
     msg.textContent=`${data.username}: ${data.text}`;
     chatBox.appendChild(msg);
@@ -329,7 +342,7 @@ function refreshMessages(){
 // --- Send ---
 messageForm.addEventListener("submit", async e=>{
   e.preventDefault();
-  const text=messageInput.value.trim();
+  const text = messageInput.value.trim();
   if(!text) return;
   messageInput.value="";
   sendButton.disabled=true;
