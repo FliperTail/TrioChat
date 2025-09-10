@@ -173,9 +173,111 @@ function toggleBlock(name, btn) {
   refreshMessages();
 }
 
-// --- DM Modal ---
-function openDMModal(user) {
-  alert("Would open DM with " + user); // placeholder
+const dmContainer = document.getElementById("dm-container");
+const dmWindows = new Map(); // Track open DM windows
+
+function openDMModal(otherUser) {
+  if (dmWindows.has(otherUser)) return; // already open
+
+  const dmWindow = document.createElement("div");
+  dmWindow.style.width = "250px";
+  dmWindow.style.height = "300px";
+  dmWindow.style.background = "#fff";
+  dmWindow.style.border = "1px solid #ccc";
+  dmWindow.style.borderRadius = "5px";
+  dmWindow.style.display = "flex";
+  dmWindow.style.flexDirection = "column";
+  dmWindow.style.position = "relative";
+  dmWindow.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+
+  // Header
+  const header = document.createElement("div");
+  header.style.background = "#007bff";
+  header.style.color = "#fff";
+  header.style.padding = "5px";
+  header.style.fontWeight = "bold";
+  header.style.display = "flex";
+  header.style.justifyContent = "space-between";
+  header.textContent = otherUser;
+
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "X";
+  closeBtn.style.background = "transparent";
+  closeBtn.style.color = "#fff";
+  closeBtn.style.border = "none";
+  closeBtn.style.cursor = "pointer";
+  closeBtn.onclick = () => {
+    unsubscribeDM();
+    dmWindow.remove();
+    dmWindows.delete(otherUser);
+  };
+  header.appendChild(closeBtn);
+  dmWindow.appendChild(header);
+
+  // Chat box
+  const chatBox = document.createElement("div");
+  chatBox.style.flex = "1";
+  chatBox.style.padding = "5px";
+  chatBox.style.overflowY = "auto";
+  chatBox.style.background = "#f9f9f9";
+  dmWindow.appendChild(chatBox);
+
+  // Input form
+  const form = document.createElement("form");
+  form.style.display = "flex";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Type a message..";
+  input.style.flex = "1";
+  input.style.padding = "5px";
+  const sendBtn = document.createElement("button");
+  sendBtn.textContent = "Send";
+  sendBtn.type = "submit";
+  form.appendChild(input);
+  form.appendChild(sendBtn);
+  dmWindow.appendChild(form);
+
+  dmContainer.appendChild(dmWindow);
+  dmWindows.set(otherUser, dmWindow);
+
+  // DM Firestore room
+  const roomName = [username, otherUser].sort().join("_DM_");
+  let unsubscribeDM = null;
+
+  async function loadDM() {
+    chatBox.innerHTML = "";
+    const q = query(collection(db,"messages"), orderBy("timestamp"));
+    unsubscribeDM = onSnapshot(q, snapshot => {
+      snapshot.docChanges().forEach(change => {
+        const data = change.doc.data();
+        if (data.room !== roomName) return;
+        if (blockedUsers.includes(data.username)) return;
+        if (!chatBox.querySelector(`#msg-${change.doc.id}`)) {
+          const msg = document.createElement("div");
+          msg.id = "msg-" + change.doc.id;
+          msg.textContent = `${data.username}: ${data.text}`;
+          msg.style.margin = "2px 0";
+          chatBox.appendChild(msg);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      });
+    });
+  }
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    await addDoc(collection(db,"messages"), {
+      username,
+      text,
+      room: roomName,
+      timestamp: serverTimestamp()
+    });
+  });
+
+  loadDM();
 }
 
 // --- Status controls ---
