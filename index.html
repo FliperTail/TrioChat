@@ -100,69 +100,39 @@ const onlineUsersMap = new Map();
 function updateOnlineUsers() {
   const onlineRef = collection(db, "onlineUsers");
 
-  // Update current user periodically
+  // Update your lastSeen every 5 seconds
   setInterval(() => {
-    setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() }, { merge: true });
+    setDoc(doc(db,"onlineUsers",username), { lastSeen: serverTimestamp() }, { merge: true });
   }, 5000);
 
-  // Listen to all online users
+  // Track rendered users to avoid clearing DOM constantly
+  const renderedUsers = new Map();
+
   onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
-    const seenUsers = new Set();
-
+    // Remove offline users
+    for (let [name, el] of renderedUsers.entries()) {
+      const userDoc = snapshot.docs.find(d => d.id === name);
+      if (!userDoc || userDoc.data().lastSeen.toMillis() + 10000 <= now) {
+        el.remove();
+        renderedUsers.delete(name);
+      }
+    }
+    // Add/update online users
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (data.lastSeen && data.lastSeen.toMillis() + 12000 > now) { // 12s buffer
-        seenUsers.add(data.username);
-        if (!onlineUsersMap.has(data.username)) {
+      if (data.lastSeen && data.lastSeen.toMillis() + 10000 > now) {
+        if (!renderedUsers.has(data.username)) {
           const userItem = document.createElement("div");
           userItem.classList.add("user-item");
           userItem.textContent = data.username;
           usersDiv.appendChild(userItem);
-          onlineUsersMap.set(data.username, userItem);
+          renderedUsers.set(data.username, userItem);
         }
       }
     });
-
-    // Remove offline users smoothly
-    onlineUsersMap.forEach((el, name) => {
-      if (!seenUsers.has(name)) {
-        usersDiv.removeChild(el);
-        onlineUsersMap.delete(name);
-      }
-    });
   });
 }
-
-// --- Username check / login ---
-usernamePage.style.display = "flex";
-const savedUsername = localStorage.getItem("triochat_username");
-if (savedUsername) {
-  const usernameDoc = doc(db, "usernames", savedUsername);
-  getDoc(usernameDoc).then(docSnap => {
-    if (docSnap.exists()) {
-      username = savedUsername;
-      loginUser();
-    } else {
-      localStorage.removeItem("triochat_username");
-    }
-  });
-}
-
-submitUsername.addEventListener("click", async () => {
-  const name = usernameInput.value.trim();
-  if (!name) return;
-  const usernameDoc = doc(db, "usernames", name);
-  const docSnap = await getDoc(usernameDoc);
-  if (docSnap.exists()) {
-    errorDiv.textContent = "Username is already taken.";
-  } else {
-    await setDoc(usernameDoc, { created: serverTimestamp() });
-    username = name;
-    localStorage.setItem("triochat_username", username);
-    loginUser();
-  }
-});
 
 function loginUser() {
   usernamePage.style.display = "none";
@@ -234,21 +204,24 @@ document.getElementById("create-room-btn").addEventListener("click", async () =>
   addRoomListeners();
 });
 
-// --- Chat listener ---
 function startChat(room) {
   chatBox.innerHTML = "";
   if (unsubscribe) unsubscribe();
+
   const q = query(collection(db, "messages"), orderBy("timestamp"));
   unsubscribe = onSnapshot(q, snapshot => {
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      if (data.room !== room) return;
-      const msg = document.createElement("div");
-      msg.classList.add("msg");
-      msg.textContent = `${data.username}: ${data.text}`;
-      chatBox.appendChild(msg);
+    snapshot.docChanges().forEach(change => {
+      if (change.type === "added") {
+        const data = change.doc.data();
+        if (data.room !== room) return;
+
+        const msg = document.createElement("div");
+        msg.classList.add("msg");
+        msg.textContent = `${data.username}: ${data.text}`;
+        chatBox.appendChild(msg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
     });
-    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
