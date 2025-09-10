@@ -77,16 +77,39 @@ let unsubscribe = null;
 
 usernamePage.style.display = "flex";
 
+// Check if username is saved in localStorage
+const savedUsername = localStorage.getItem("triochat_username");
+if (savedUsername) {
+  const usernameDoc = doc(db, "usernames", savedUsername);
+  getDoc(usernameDoc).then(docSnap => {
+    if (docSnap.exists()) {
+      username = savedUsername;
+      usernamePage.style.display = "none";
+      chatPage.style.display = "flex";
+      setActiveRoomButton();
+      startChat(currentRoom);
+    } else {
+      localStorage.removeItem("triochat_username");
+    }
+  });
+}
+
 submitUsername.addEventListener("click", async () => {
   const name = usernameInput.value.trim();
   if (!name) return;
+
   const usernameDoc = doc(db, "usernames", name);
   const docSnap = await getDoc(usernameDoc);
+
   if (docSnap.exists()) {
     errorDiv.textContent = "Username is already taken.";
   } else {
     await setDoc(usernameDoc, { created: serverTimestamp() });
     username = name;
+
+    // Save username in localStorage
+    localStorage.setItem("triochat_username", username);
+
     usernamePage.style.display = "none";
     chatPage.style.display = "flex";
     setActiveRoomButton();
@@ -98,7 +121,7 @@ submitUsername.addEventListener("click", async () => {
 roomButtons.forEach(btn => {
   btn.addEventListener("click", () => {
     const selectedRoom = btn.dataset.room;
-    if (selectedRoom === currentRoom) return; // Already in room
+    if (selectedRoom === currentRoom) return;
     currentRoom = selectedRoom;
     setActiveRoomButton();
     if (unsubscribe) unsubscribe();
@@ -106,7 +129,7 @@ roomButtons.forEach(btn => {
   });
 });
 
-// Highlight the active room
+// Highlight active room
 function setActiveRoomButton() {
   roomButtons.forEach(btn => {
     btn.classList.toggle("active", btn.dataset.room === currentRoom);
