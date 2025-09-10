@@ -45,8 +45,7 @@ body {
   text-align: center;
 }
 
-/* Chat page */
-/* Header for username page and chat page */
+/* Chat page header */
 h2 {
   text-align: center;
   background: #007bff;
@@ -54,10 +53,10 @@ h2 {
   padding: 10px 20px;
   margin: 10px 0;
   border-radius: 5px;
-  display: inline-block; /* Make it shrink to content instead of full width */
+  display: inline-block;
 }
 
-/* Room buttons container stays the same */
+/* Room buttons */
 #room-select {
   text-align: center;
   margin: 10px 0;
@@ -88,9 +87,9 @@ h2 {
   overflow: hidden;
 }
 
-/* Chat messages area */
+/* Chat messages */
 #chat-box {
-  flex: 1; /* takes remaining space */
+  flex: 1;
   padding: 10px;
   overflow-y: auto;
   background: #f9f9f9;
@@ -125,6 +124,10 @@ button.send-btn {
   color: white;
   border-radius: 5px;
   cursor: pointer;
+}
+button.send-btn:disabled {
+  background: #999;
+  cursor: not-allowed;
 }
 </style>
 </head>
@@ -184,6 +187,7 @@ const errorDiv = document.getElementById("error");
 const chatBox = document.getElementById('chat-box');
 const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
+const sendButton = document.querySelector(".send-btn");
 const roomButtons = document.querySelectorAll(".room-btn");
 
 let username = "";
@@ -265,23 +269,29 @@ function startChat(room) {
         chatBox.appendChild(msg);
       }
     });
-
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
+// Message submit with anti-spam
 messageForm.addEventListener("submit", async e => {
   e.preventDefault();
   const text = messageInput.value.trim();
-  if (text) {
-    await addDoc(collection(db, "messages"), {
-      username,
-      text,
-      room: currentRoom,
-      timestamp: serverTimestamp()
-    });
-    messageInput.value = "";
-  }
+  if (!text) return;
+
+  // Clear input immediately
+  messageInput.value = "";
+
+  // Disable send button temporarily
+  sendButton.disabled = true;
+  setTimeout(() => { sendButton.disabled = false; }, 500); // 0.5 second cooldown
+
+  await addDoc(collection(db, "messages"), {
+    username,
+    text,
+    room: currentRoom,
+    timestamp: serverTimestamp()
+  });
 });
 </script>
 
