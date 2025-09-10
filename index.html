@@ -96,22 +96,23 @@ let currentRoom = "Room 1";
 let unsubscribe = null;
 const onlineUsersMap = new Map();
 
-// --- Helper: Update online users smoothly ---
+// --- Helper: Update online users without blinking ---
 function updateOnlineUsers() {
   const onlineRef = collection(db, "onlineUsers");
 
-  // Start updating user's lastSeen every 5 seconds
+  // Update current user periodically
   setInterval(() => {
     setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() }, { merge: true });
   }, 5000);
 
+  // Listen to all online users
   onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
     const seenUsers = new Set();
 
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (data.lastSeen && data.lastSeen.toMillis() + 10000 > now) {
+      if (data.lastSeen && data.lastSeen.toMillis() + 12000 > now) { // 12s buffer
         seenUsers.add(data.username);
         if (!onlineUsersMap.has(data.username)) {
           const userItem = document.createElement("div");
@@ -123,7 +124,7 @@ function updateOnlineUsers() {
       }
     });
 
-    // Remove users who are no longer online
+    // Remove offline users smoothly
     onlineUsersMap.forEach((el, name) => {
       if (!seenUsers.has(name)) {
         usersDiv.removeChild(el);
