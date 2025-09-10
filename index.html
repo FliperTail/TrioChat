@@ -134,7 +134,6 @@ function updateOnlineUsers() {
 
   onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
-    // Remove offline users
     for (let [name, el] of onlineUsersMap.entries()) {
       const userDoc = snapshot.docs.find(d=>d.id===name);
       const lastSeen = userDoc?.data()?.lastSeen?.toMillis() || 0;
@@ -144,7 +143,6 @@ function updateOnlineUsers() {
       }
     }
 
-    // Add/update online users
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       const lastSeen = data.lastSeen?.toMillis() || 0;
@@ -237,6 +235,7 @@ function checkLogin(name){
   setDoc(doc(db,"onlineUsers",username), { username, lastSeen:serverTimestamp() });
   updateOnlineUsers();
   loadRoomsRealtime();
+  startChat(currentRoom); // ✅ Start chat immediately after login
 }
 
 // Remove self on exit
@@ -259,6 +258,7 @@ function loadRoomsRealtime() {
     });
     addRoomListeners();
     setActiveRoomButton();
+    startChat(currentRoom); // ✅ Ensure chat loads when rooms update
   });
 }
 
