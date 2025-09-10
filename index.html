@@ -55,14 +55,14 @@ h2 {
 
 /* Chat container */
 #chat-box {
-  height: calc(100vh - 170px); /* header + rooms + input ≈ 170px */
-  max-width: 600px;
-  margin: 0 auto;
-  overflow-y: auto;
+  height: 400px;              /* fixed height for the box */
+  max-width: 600px;           /* width constraint */
+  margin: 0 auto;             /* center horizontally */
   padding: 10px;
-  background: #fff;
-  border-top: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
+  background: #fff;           /* white background for box */
+  border: 1px solid #ccc;     /* visible border */
+  border-radius: 5px;         /* rounded corners */
+  overflow-y: auto;           /* scroll only inside box */
   box-sizing: border-box;
 }
 
