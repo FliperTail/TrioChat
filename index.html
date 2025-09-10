@@ -124,55 +124,57 @@ let blockedUsers = JSON.parse(localStorage.getItem("blockedUsers") || "[]");
 const onlineUsersMap = new Map();
 let unsubscribeRooms = null;
 
-// --- Online users ---
 function updateOnlineUsers() {
   const onlineRef = collection(db,"onlineUsers");
 
+  // heartbeat every 5s
   setInterval(() => {
-    setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() }, { merge:true });
+    setDoc(
+      doc(db,"onlineUsers",username),
+      { username, lastSeen: serverTimestamp() },
+      { merge:true }
+    );
   }, 5000);
 
+  // live update
   onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
-    for (let [name, el] of onlineUsersMap.entries()) {
-      const userDoc = snapshot.docs.find(d=>d.id===name);
-      const lastSeen = userDoc?.data()?.lastSeen?.toMillis() || 0;
-      if (!userDoc || lastSeen+10000 <= now) {
-        el.remove();
-        onlineUsersMap.delete(name);
-      }
-    }
+
+    // Clear and rebuild list every time (prevents ghost users staying)
+    usersDiv.innerHTML = "";
+    onlineUsersMap.clear();
 
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       const lastSeen = data.lastSeen?.toMillis() || 0;
-      if (lastSeen+10000 <= now || data.username === username) return;
 
-      if (!onlineUsersMap.has(data.username)) {
-        const userItem = document.createElement("div");
-        userItem.classList.add("user-item");
-        userItem.innerHTML = `<div class="user-name">${data.username}</div>`;
+      // skip stale (offline) or yourself
+      if (lastSeen + 10000 <= now || data.username === username) return;
 
-        const btns = document.createElement("div");
-        btns.classList.add("user-buttons");
+      // render user
+      const userItem = document.createElement("div");
+      userItem.classList.add("user-item");
+      userItem.innerHTML = `<div class="user-name">${data.username}</div>`;
 
-        const blockBtn = document.createElement("button");
-        blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
-        blockBtn.className = "block-btn";
-        blockBtn.onclick = ()=>toggleBlock(data.username, blockBtn);
+      const btns = document.createElement("div");
+      btns.classList.add("user-buttons");
 
-        const dmBtn = document.createElement("button");
-        dmBtn.textContent = "DM";
-        dmBtn.className = "dm-btn";
-        dmBtn.onclick = ()=>openDMModal(data.username);
+      const blockBtn = document.createElement("button");
+      blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
+      blockBtn.className = "block-btn";
+      blockBtn.onclick = ()=>toggleBlock(data.username, blockBtn);
 
-        btns.appendChild(blockBtn);
-        btns.appendChild(dmBtn);
-        userItem.appendChild(btns);
+      const dmBtn = document.createElement("button");
+      dmBtn.textContent = "DM";
+      dmBtn.className = "dm-btn";
+      dmBtn.onclick = ()=>openDMModal(data.username);
 
-        usersDiv.appendChild(userItem);
-        onlineUsersMap.set(data.username,userItem);
-      }
+      btns.appendChild(blockBtn);
+      btns.appendChild(dmBtn);
+      userItem.appendChild(btns);
+
+      usersDiv.appendChild(userItem);
+      onlineUsersMap.set(data.username, userItem);
     });
   });
 }
