@@ -94,8 +94,9 @@ const usersDiv = document.getElementById("users");
 let username = "";
 let currentRoom = "Room 1";
 let unsubscribe = null;
+const onlineUsersMap = new Map();
 
-// --- Helper: Update online users ---
+// --- Helper: Update online users smoothly ---
 function updateOnlineUsers() {
   const onlineRef = collection(db, "onlineUsers");
 
@@ -104,17 +105,29 @@ function updateOnlineUsers() {
     setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() }, { merge: true });
   }, 5000);
 
-  // Listen for all users
   onSnapshot(onlineRef, snapshot => {
-    usersDiv.innerHTML = "";
     const now = Date.now();
+    const seenUsers = new Set();
+
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (data.lastSeen && data.lastSeen.toMillis() + 10000 > now) { // only show if lastSeen < 10s
-        const userItem = document.createElement("div");
-        userItem.classList.add("user-item");
-        userItem.textContent = data.username;
-        usersDiv.appendChild(userItem);
+      if (data.lastSeen && data.lastSeen.toMillis() + 10000 > now) {
+        seenUsers.add(data.username);
+        if (!onlineUsersMap.has(data.username)) {
+          const userItem = document.createElement("div");
+          userItem.classList.add("user-item");
+          userItem.textContent = data.username;
+          usersDiv.appendChild(userItem);
+          onlineUsersMap.set(data.username, userItem);
+        }
+      }
+    });
+
+    // Remove users who are no longer online
+    onlineUsersMap.forEach((el, name) => {
+      if (!seenUsers.has(name)) {
+        usersDiv.removeChild(el);
+        onlineUsersMap.delete(name);
       }
     });
   });
@@ -153,8 +166,7 @@ submitUsername.addEventListener("click", async () => {
 function loginUser() {
   usernamePage.style.display = "none";
   chatPage.style.display = "flex";
-  // Add user to online users
-  setDoc(doc(db,"onlineUsers",username), { username });
+  setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() });
   updateOnlineUsers();
   loadRooms();
 }
@@ -227,7 +239,6 @@ function startChat(room) {
   if (unsubscribe) unsubscribe();
   const q = query(collection(db, "messages"), orderBy("timestamp"));
   unsubscribe = onSnapshot(q, snapshot => {
-    chatBox.innerHTML = "";
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.room !== room) return;
