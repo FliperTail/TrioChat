@@ -175,22 +175,8 @@ function toggleBlock(name, btn) {
 
 // --- DM Modal ---
 function openDMModal(user) {
-  dmUsernameInput.value = user;
-  dmModal.style.display = "flex";
+  alert("Would open DM with " + user); // placeholder
 }
-
-dmSendBtn.onclick = async ()=>{
-  const otherUser = dmUsernameInput.value.trim();
-  if (!otherUser) return;
-  const roomName = [username, otherUser].sort().join("_DM_");
-  await setDoc(doc(db,"rooms",roomName), { private:true, allowedUsers:[username, otherUser] });
-  currentRoom = roomName;
-  setActiveRoomButton();
-  startChat(roomName);
-  dmModal.style.display = "none";
-  loadRoomsRealtime();
-}
-dmCancelBtn.onclick = ()=>dmModal.style.display="none";
 
 // --- Status controls ---
 function setStatus(newStatus) {
