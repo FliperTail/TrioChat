@@ -148,6 +148,7 @@ button.send-btn:disabled {
     <button class="room-btn" data-room="Room 1">Room 1</button>
     <button class="room-btn" data-room="Room 2">Room 2</button>
     <button class="room-btn" data-room="Room 3">Room 3</button>
+    <button id="create-room-btn" style="background:#28a745;color:white;">+ Create Room</button>
   </div>
 
   <!-- Chat container -->
@@ -188,7 +189,8 @@ const chatBox = document.getElementById('chat-box');
 const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
 const sendButton = document.querySelector(".send-btn");
-const roomButtons = document.querySelectorAll(".room-btn");
+const roomButtonsContainer = document.getElementById("room-select");
+let roomButtons = document.querySelectorAll(".room-btn");
 
 let username = "";
 let currentRoom = "Room 1";
@@ -234,24 +236,51 @@ submitUsername.addEventListener("click", async () => {
 });
 
 // Room switching
-roomButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    const selectedRoom = btn.dataset.room;
-    if (selectedRoom === currentRoom) return;
-    currentRoom = selectedRoom;
-    setActiveRoomButton();
-    if (unsubscribe) unsubscribe();
-    startChat(currentRoom);
+function addRoomListeners() {
+  roomButtons = document.querySelectorAll(".room-btn");
+  roomButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const selectedRoom = btn.dataset.room;
+      if (selectedRoom === currentRoom) return;
+      currentRoom = selectedRoom;
+      setActiveRoomButton();
+      if (unsubscribe) unsubscribe();
+      startChat(currentRoom);
+    });
   });
-});
+}
 
-// Highlight active room
+addRoomListeners();
+
 function setActiveRoomButton() {
   roomButtons.forEach(btn => {
     btn.classList.toggle("active", btn.dataset.room === currentRoom);
   });
 }
 
+// Create private room
+document.getElementById("create-room-btn").addEventListener("click", async () => {
+  const roomName = prompt("Enter a name for your private room:");
+  if (!roomName) return;
+
+  const allowedUsersInput = prompt("Enter usernames allowed in this room, comma-separated:");
+  const allowedUsers = allowedUsersInput ? allowedUsersInput.split(",").map(u => u.trim()) : [];
+  if (!allowedUsers.includes(username)) allowedUsers.push(username);
+
+  // Save private room in Firestore
+  const roomDoc = doc(db, "rooms", roomName);
+  await setDoc(roomDoc, { private: true, allowedUsers });
+
+  // Add button dynamically
+  const btn = document.createElement("button");
+  btn.classList.add("room-btn");
+  btn.dataset.room = roomName;
+  btn.textContent = roomName;
+  roomButtonsContainer.insertBefore(btn, document.getElementById("create-room-btn"));
+  addRoomListeners();
+});
+
+// Start chat
 function startChat(room) {
   chatBox.innerHTML = "";
   const q = query(collection(db, "messages"), orderBy("timestamp"));
@@ -263,13 +292,21 @@ function startChat(room) {
     snapshot.forEach(doc => {
       const data = doc.data();
       if (data.room === room) {
-        const msg = document.createElement("div");
-        msg.classList.add("msg");
-        msg.textContent = `${data.username}: ${data.text}`;
-        chatBox.appendChild(msg);
+        // Check if room is private
+        const roomDocRef = doc(db, "rooms", room);
+        getDoc(roomDocRef).then(roomSnap => {
+          if (!roomSnap.exists() || (roomSnap.data().private && !roomSnap.data().allowedUsers.includes(username))) {
+            return; // user not allowed
+          } else {
+            const msg = document.createElement("div");
+            msg.classList.add("msg");
+            msg.textContent = `${data.username}: ${data.text}`;
+            chatBox.appendChild(msg);
+            chatBox.scrollTop = chatBox.scrollHeight;
+          }
+        });
       }
     });
-    chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
@@ -279,12 +316,9 @@ messageForm.addEventListener("submit", async e => {
   const text = messageInput.value.trim();
   if (!text) return;
 
-  // Clear input immediately
   messageInput.value = "";
-
-  // Disable send button temporarily
   sendButton.disabled = true;
-  setTimeout(() => { sendButton.disabled = false; }, 500); // 0.5 second cooldown
+  setTimeout(() => { sendButton.disabled = false; }, 500);
 
   await addDoc(collection(db, "messages"), {
     username,
