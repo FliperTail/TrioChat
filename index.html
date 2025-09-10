@@ -14,7 +14,7 @@ h2 { text-align:center; background:#007bff; color:white; padding:10px 20px; marg
 #room-select button { margin:0 5px; padding:5px 10px; cursor:pointer; border:none; border-radius:5px; background:#ccc; color:black; }
 #room-select button.active { background:#007bff; color:white; }
 .chat-container { display:flex; width:100%; height:500px; background:#fff; border:1px solid #ccc; border-radius:5px; overflow:hidden; }
-#user-list { width:150px; border-right:1px solid #ccc; background:#f9f9f9; padding:10px; overflow-y:auto; }
+#user-list { width:180px; border-right:1px solid #ccc; background:#f9f9f9; padding:10px; overflow-y:auto; }
 #user-list h4 { margin-top:0; }
 #chat-area { flex:1; display:flex; flex-direction:column; }
 #chat-box { flex:1; padding:10px; overflow-y:auto; background:#f9f9f9; }
@@ -24,6 +24,11 @@ h2 { text-align:center; background:#007bff; color:white; padding:10px 20px; marg
 button.send-btn { margin-left:10px; padding:10px 20px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
 button.send-btn:disabled { background:#999; cursor:not-allowed; }
 .user-item { padding:4px 6px; border-bottom:1px solid #ddd; }
+.user-name { font-weight:bold; }
+.user-buttons { margin-top:4px; display:flex; gap:4px; }
+.user-buttons button { flex:1; font-size:11px; padding:3px; border:none; border-radius:3px; cursor:pointer; }
+.block-btn { background:#dc3545; color:white; }
+.dm-btn { background:#28a745; color:white; }
 </style>
 </head>
 <body>
@@ -67,7 +72,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCH3EXgZ9FN_t_tEW10uR5YmHiX_pabzew",
   authDomain: "triochat-cbd25.firebaseapp.com",
   projectId: "triochat-cbd25",
-  storageBucket: "triochat-cbd25.firebasestorage.app",
+  storageBucket: "triochat-cbd25.appspot.com",
   messagingSenderId: "240591787712",
   appId: "1:240591787712:web:7486c19c654a173eb4bf25",
   measurementId: "G-TFXZ6HSSHN"
@@ -75,7 +80,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// DOM Elements
+// DOM
 const usernamePage = document.getElementById("username-page");
 const chatPage = document.getElementById("chat-page");
 const usernameInput = document.getElementById("username-input");
@@ -93,19 +98,19 @@ let username = "";
 let currentRoom = "Room 1";
 let unsubscribeMessages = null;
 let unsubscribeUsers = null;
+let blockedUsers = JSON.parse(localStorage.getItem("blockedUsers") || "[]");
 
-// --- Online users ---
+// Online users
 const onlineUsersMap = new Map();
 function updateOnlineUsers() {
   const onlineRef = collection(db, "onlineUsers");
-  // Update your lastSeen every 5s
   setInterval(() => {
     setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() }, { merge:true });
   },5000);
 
   unsubscribeUsers = onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
-    // Remove offline users
+    // Cleanup missing/expired
     for (let [name, el] of onlineUsersMap.entries()) {
       const userDoc = snapshot.docs.find(d=>d.id===name);
       if (!userDoc || !userDoc.data().lastSeen || userDoc.data().lastSeen.toMillis() + 10000 <= now) {
@@ -113,14 +118,29 @@ function updateOnlineUsers() {
         onlineUsersMap.delete(name);
       }
     }
-    // Add or update users
+    // Add/update
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       if (data.lastSeen && data.lastSeen.toMillis() + 10000 > now) {
         if (!onlineUsersMap.has(data.username)) {
           const userItem = document.createElement("div");
           userItem.classList.add("user-item");
-          userItem.textContent = data.username;
+          userItem.innerHTML = `<div class="user-name">${data.username}</div>`;
+          if (data.username !== username) {
+            const btns = document.createElement("div");
+            btns.classList.add("user-buttons");
+            const blockBtn = document.createElement("button");
+            blockBtn.textContent = blockedUsers.includes(data.username) ? "Unblock" : "Block";
+            blockBtn.className = "block-btn";
+            blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
+            const dmBtn = document.createElement("button");
+            dmBtn.textContent = "DM";
+            dmBtn.className = "dm-btn";
+            dmBtn.onclick = () => startDM(data.username);
+            btns.appendChild(blockBtn);
+            btns.appendChild(dmBtn);
+            userItem.appendChild(btns);
+          }
           usersDiv.appendChild(userItem);
           onlineUsersMap.set(data.username,userItem);
         }
@@ -129,7 +149,30 @@ function updateOnlineUsers() {
   });
 }
 
-// --- Username/login ---
+// Block/unblock
+function toggleBlock(name, btn) {
+  if (blockedUsers.includes(name)) {
+    blockedUsers = blockedUsers.filter(n=>n!==name);
+    btn.textContent = "Block";
+  } else {
+    blockedUsers.push(name);
+    btn.textContent = "Unblock";
+  }
+  localStorage.setItem("blockedUsers", JSON.stringify(blockedUsers));
+  refreshMessages();
+}
+
+// Direct message
+async function startDM(otherUser) {
+  const roomName = [username, otherUser].sort().join("_DM_");
+  await setDoc(doc(db,"rooms",roomName), { private:true, allowedUsers:[username, otherUser] });
+  addRoomButton(roomName);
+  currentRoom = roomName;
+  setActiveRoomButton();
+  startChat(roomName);
+}
+
+// Username/login
 usernamePage.style.display = "flex";
 const savedUsername = localStorage.getItem("triochat_username");
 if (savedUsername) checkLogin(savedUsername);
@@ -157,12 +200,12 @@ function checkLogin(name){
   loadRooms();
 }
 
-// Remove from online when leaving
+// Remove self on exit
 window.addEventListener("beforeunload", async ()=> {
   await deleteDoc(doc(db,"onlineUsers",username));
 });
 
-// --- Rooms ---
+// Rooms
 async function loadRooms() {
   const roomSnap = await getDocs(collection(db,"rooms"));
   roomButtonsContainer.querySelectorAll('.room-btn').forEach(btn=>{
@@ -206,7 +249,7 @@ function setActiveRoomButton(){
   });
 }
 
-// Create private room
+// Create private room manually
 document.getElementById("create-room-btn").addEventListener("click", async ()=>{
   const roomName = prompt("Enter a name for your private room:");
   if(!roomName) return;
@@ -218,14 +261,14 @@ document.getElementById("create-room-btn").addEventListener("click", async ()=>{
   addRoomListeners();
 });
 
-// --- Chat ---
+// Chat
+let cachedMessages = [];
+
 async function startChat(room) {
   chatBox.innerHTML = "";
-
-  // Stop previous listener
+  cachedMessages = [];
   if (unsubscribeMessages) unsubscribeMessages();
 
-  // Check room permissions once
   const roomRef = doc(db, "rooms", room);
   const rSnap = await getDoc(roomRef);
   const roomData = rSnap.exists() ? rSnap.data() : { private: false };
@@ -236,34 +279,38 @@ async function startChat(room) {
     return;
   }
 
-  // Listen to messages in this room
   const q = query(collection(db, "messages"), orderBy("timestamp"));
   unsubscribeMessages = onSnapshot(q, snapshot => {
     snapshot.docChanges().forEach(change => {
       const data = change.doc.data();
       if (data.room !== room) return;
-
       if (change.type === "added") {
-        const msg = document.createElement("div");
-        msg.classList.add("msg");
-        msg.id = `msg-${change.doc.id}`;
-        msg.textContent = `${data.username}: ${data.text}`;
-        chatBox.appendChild(msg);
-        chatBox.scrollTop = chatBox.scrollHeight;
+        cachedMessages.push({ id: change.doc.id, ...data });
       }
       if (change.type === "modified") {
-        const msgEl = document.getElementById(`msg-${change.doc.id}`);
-        if (msgEl) msgEl.textContent = `${data.username}: ${data.text}`;
+        cachedMessages = cachedMessages.map(m=>m.id===change.doc.id?{id:change.doc.id,...data}:m);
       }
       if (change.type === "removed") {
-        const msgEl = document.getElementById(`msg-${change.doc.id}`);
-        if (msgEl) msgEl.remove();
+        cachedMessages = cachedMessages.filter(m=>m.id!==change.doc.id);
       }
     });
+    refreshMessages();
   });
 }
 
-// Send message
+function refreshMessages(){
+  chatBox.innerHTML="";
+  cachedMessages.forEach(data=>{
+    if (blockedUsers.includes(data.username)) return;
+    const msg = document.createElement("div");
+    msg.classList.add("msg");
+    msg.textContent = `${data.username}: ${data.text}`;
+    chatBox.appendChild(msg);
+  });
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// Send
 messageForm.addEventListener("submit", async e=>{
   e.preventDefault();
   const text = messageInput.value.trim();
