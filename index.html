@@ -72,7 +72,6 @@ const firebaseConfig = {
   appId: "1:240591787712:web:7486c19c654a173eb4bf25",
   measurementId: "G-TFXZ6HSSHN"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -90,72 +89,86 @@ const roomButtonsContainer = document.getElementById("room-select");
 let roomButtons = document.querySelectorAll(".room-btn");
 const usersDiv = document.getElementById("users");
 
-// State
 let username = "";
 let currentRoom = "Room 1";
-let unsubscribe = null;
-const onlineUsersMap = new Map();
+let unsubscribeMessages = null;
+let unsubscribeUsers = null;
 
-// --- Helper: Update online users without blinking ---
+// --- Online users ---
+const onlineUsersMap = new Map();
 function updateOnlineUsers() {
   const onlineRef = collection(db, "onlineUsers");
-
-  // Update your lastSeen every 5 seconds
+  // Update your lastSeen every 5s
   setInterval(() => {
-    setDoc(doc(db,"onlineUsers",username), { lastSeen: serverTimestamp() }, { merge: true });
-  }, 5000);
+    setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() }, { merge:true });
+  },5000);
 
-  // Track rendered users to avoid clearing DOM constantly
-  const renderedUsers = new Map();
-
-  onSnapshot(onlineRef, snapshot => {
+  unsubscribeUsers = onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
     // Remove offline users
-    for (let [name, el] of renderedUsers.entries()) {
-      const userDoc = snapshot.docs.find(d => d.id === name);
+    for (let [name, el] of onlineUsersMap.entries()) {
+      const userDoc = snapshot.docs.find(d=>d.id===name);
       if (!userDoc || userDoc.data().lastSeen.toMillis() + 10000 <= now) {
         el.remove();
-        renderedUsers.delete(name);
+        onlineUsersMap.delete(name);
       }
     }
-    // Add/update online users
+    // Add new users
     snapshot.forEach(doc => {
       const data = doc.data();
-      if (data.lastSeen && data.lastSeen.toMillis() + 10000 > now) {
-        if (!renderedUsers.has(data.username)) {
-          const userItem = document.createElement("div");
-          userItem.classList.add("user-item");
-          userItem.textContent = data.username;
-          usersDiv.appendChild(userItem);
-          renderedUsers.set(data.username, userItem);
-        }
+      if (data.lastSeen.toMillis() + 10000 > now && !onlineUsersMap.has(data.username)) {
+        const userItem = document.createElement("div");
+        userItem.classList.add("user-item");
+        userItem.textContent = data.username;
+        usersDiv.appendChild(userItem);
+        onlineUsersMap.set(data.username,userItem);
       }
     });
   });
 }
 
-function loginUser() {
+// --- Username/login ---
+usernamePage.style.display = "flex";
+const savedUsername = localStorage.getItem("triochat_username");
+if (savedUsername) checkLogin(savedUsername);
+
+submitUsername.addEventListener("click", async () => {
+  const name = usernameInput.value.trim();
+  if (!name) return;
+  const usernameDoc = doc(db,"usernames",name);
+  const docSnap = await getDoc(usernameDoc);
+  if (docSnap.exists()) {
+    errorDiv.textContent = "Username is already taken.";
+  } else {
+    await setDoc(usernameDoc,{created:serverTimestamp()});
+    localStorage.setItem("triochat_username",name);
+    checkLogin(name);
+  }
+});
+
+function checkLogin(name){
+  username = name;
   usernamePage.style.display = "none";
   chatPage.style.display = "flex";
-  setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp() });
+  setDoc(doc(db,"onlineUsers",username), { username, lastSeen:serverTimestamp() });
   updateOnlineUsers();
   loadRooms();
 }
 
-// Remove user from online list when leaving
-window.addEventListener("beforeunload", async () => {
+// Remove from online when leaving
+window.addEventListener("beforeunload", async ()=> {
   await deleteDoc(doc(db,"onlineUsers",username));
 });
 
 // --- Rooms ---
 async function loadRooms() {
-  const roomSnap = await getDocs(collection(db, "rooms"));
+  const roomSnap = await getDocs(collection(db,"rooms"));
   roomButtonsContainer.querySelectorAll('.room-btn').forEach(btn=>{
     if(!["Room 1","Room 2","Room 3"].includes(btn.dataset.room)) btn.remove();
   });
   roomSnap.forEach(doc => {
     const data = doc.data();
-    if (data.private && !data.allowedUsers.includes(username)) return;
+    if(data.private && !data.allowedUsers.includes(username)) return;
     addRoomButton(doc.id);
   });
   addRoomListeners();
@@ -163,8 +176,8 @@ async function loadRooms() {
   startChat(currentRoom);
 }
 
-function addRoomButton(name) {
-  if (document.querySelector(`.room-btn[data-room='${name}']`)) return;
+function addRoomButton(name){
+  if(document.querySelector(`.room-btn[data-room='${name}']`)) return;
   const btn = document.createElement("button");
   btn.classList.add("room-btn");
   btn.dataset.room = name;
@@ -172,49 +185,47 @@ function addRoomButton(name) {
   roomButtonsContainer.insertBefore(btn, document.getElementById("create-room-btn"));
 }
 
-function addRoomListeners() {
+function addRoomListeners(){
   roomButtons = document.querySelectorAll(".room-btn");
-  roomButtons.forEach(btn => {
-    btn.onclick = () => {
+  roomButtons.forEach(btn=>{
+    btn.onclick = ()=>{
       const selectedRoom = btn.dataset.room;
-      if (selectedRoom === currentRoom) return;
+      if(selectedRoom === currentRoom) return;
       currentRoom = selectedRoom;
       setActiveRoomButton();
       startChat(currentRoom);
-    }
+    };
   });
 }
 
-function setActiveRoomButton() {
-  roomButtons.forEach(btn => {
+function setActiveRoomButton(){
+  roomButtons.forEach(btn=>{
     btn.classList.toggle("active", btn.dataset.room === currentRoom);
   });
 }
 
 // Create private room
-document.getElementById("create-room-btn").addEventListener("click", async () => {
+document.getElementById("create-room-btn").addEventListener("click", async ()=>{
   const roomName = prompt("Enter a name for your private room:");
-  if (!roomName) return;
+  if(!roomName) return;
   const allowedUsersInput = prompt("Enter usernames allowed (comma-separated):");
   const allowedUsers = allowedUsersInput ? allowedUsersInput.split(",").map(u=>u.trim()) : [];
-  if (!allowedUsers.includes(username)) allowedUsers.push(username);
-
+  if(!allowedUsers.includes(username)) allowedUsers.push(username);
   await setDoc(doc(db,"rooms",roomName), { private:true, allowedUsers });
   addRoomButton(roomName);
   addRoomListeners();
 });
 
-function startChat(room) {
+// --- Chat ---
+function startChat(room){
   chatBox.innerHTML = "";
-  if (unsubscribe) unsubscribe();
-
-  const q = query(collection(db, "messages"), orderBy("timestamp"));
-  unsubscribe = onSnapshot(q, snapshot => {
+  if(unsubscribeMessages) unsubscribeMessages();
+  const q = query(collection(db,"messages"), orderBy("timestamp"));
+  unsubscribeMessages = onSnapshot(q, snapshot => {
     snapshot.docChanges().forEach(change => {
-      if (change.type === "added") {
-        const data = change.doc.data();
-        if (data.room !== room) return;
-
+      const data = change.doc.data();
+      if(data.room !== room) return;
+      if(change.type === "added"){
         const msg = document.createElement("div");
         msg.classList.add("msg");
         msg.textContent = `${data.username}: ${data.text}`;
@@ -225,15 +236,15 @@ function startChat(room) {
   });
 }
 
-// --- Send message ---
-messageForm.addEventListener("submit", async e => {
+// Send message
+messageForm.addEventListener("submit", async e=>{
   e.preventDefault();
   const text = messageInput.value.trim();
-  if (!text) return;
+  if(!text) return;
   messageInput.value = "";
   sendButton.disabled = true;
   setTimeout(()=>sendButton.disabled=false,500);
-  await addDoc(collection(db,"messages"),{ username, text, room:currentRoom, timestamp:serverTimestamp() });
+  await addDoc(collection(db,"messages"), { username, text, room:currentRoom, timestamp:serverTimestamp() });
 });
 </script>
 
