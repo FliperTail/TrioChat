@@ -177,7 +177,7 @@ const dmContainer = document.getElementById("dm-container");
 const dmWindows = new Map(); // Track open DM windows
 
 function openDMModal(otherUser) {
-  if (dmWindows.has(otherUser)) return; // already open
+  if (dmWindows.has(otherUser)) return; // DM already open
 
   const dmWindow = document.createElement("div");
   dmWindow.style.width = "250px";
@@ -207,7 +207,7 @@ function openDMModal(otherUser) {
   closeBtn.style.border = "none";
   closeBtn.style.cursor = "pointer";
   closeBtn.onclick = () => {
-    unsubscribeDM();
+    unsubscribeDM(); // stop listener
     dmWindow.remove();
     dmWindows.delete(otherUser);
   };
@@ -240,29 +240,25 @@ function openDMModal(otherUser) {
   dmContainer.appendChild(dmWindow);
   dmWindows.set(otherUser, dmWindow);
 
-  // DM Firestore room
   const roomName = [username, otherUser].sort().join("_DM_");
   let unsubscribeDM = null;
 
-  async function loadDM() {
-    chatBox.innerHTML = "";
-    const q = query(collection(db,"messages"), orderBy("timestamp"));
-    unsubscribeDM = onSnapshot(q, snapshot => {
-      snapshot.docChanges().forEach(change => {
-        const data = change.doc.data();
-        if (data.room !== roomName) return;
-        if (blockedUsers.includes(data.username)) return;
-        if (!chatBox.querySelector(`#msg-${change.doc.id}`)) {
-          const msg = document.createElement("div");
-          msg.id = "msg-" + change.doc.id;
-          msg.textContent = `${data.username}: ${data.text}`;
-          msg.style.margin = "2px 0";
-          chatBox.appendChild(msg);
-          chatBox.scrollTop = chatBox.scrollHeight;
-        }
-      });
+  // Firestore listener for this DM
+  const messagesRef = collection(db, "messages");
+  const q = query(messagesRef, orderBy("timestamp"));
+  unsubscribeDM = onSnapshot(q, snapshot => {
+    chatBox.innerHTML = ""; // clear each time
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.room !== roomName) return;
+      const msg = document.createElement("div");
+      msg.textContent = `${data.username}: ${data.text}`;
+      msg.style.margin = "2px 0";
+      if (blockedUsers.includes(data.username)) return;
+      chatBox.appendChild(msg);
     });
-  }
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
 
   form.addEventListener("submit", async e => {
     e.preventDefault();
@@ -276,8 +272,6 @@ function openDMModal(otherUser) {
       timestamp: serverTimestamp()
     });
   });
-
-  loadDM();
 }
 
 // --- Status controls ---
