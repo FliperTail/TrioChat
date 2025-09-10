@@ -54,19 +54,28 @@ h2 {
 }
 
 /* Chat container */
-#chat-box {
-  height: 400px;              /* fixed height for the box */
-  max-width: 1000px;           /* width constraint */
-  margin: 0 auto;             /* center horizontally */
-  padding: 10px;
-  background: #424242;           /* white background for box */
-  border: 1px solid #ccc;     /* visible border */
-  border-radius: 5px;         /* rounded corners */
-  overflow-y: auto;           /* scroll only inside box */
-  box-sizing: border-box;
+.chat-container {
+  max-width: 600px;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0 auto;
 }
 
-/* Messages */
+/* Chat messages */
+#chat-box {
+  height: 400px;
+  padding: 10px;
+  overflow-y: auto;
+  background: #f9f9f9;
+  flex: 1;
+}
+
+/* Individual messages */
 .msg {
   margin: 5px 0;
   padding: 8px 12px;
@@ -78,10 +87,8 @@ h2 {
 #message-form {
   display: flex;
   padding: 10px;
+  border-top: 1px solid #ccc;
   background: #eee;
-  max-width: 600px;
-  margin: 0 auto 10px auto;
-  box-sizing: border-box;
 }
 #message-input {
   flex: 1;
@@ -118,11 +125,15 @@ button.send-btn {
     <button class="room-btn" data-room="Room 2">Room 2</button>
     <button class="room-btn" data-room="Room 3">Room 3</button>
   </div>
-  <div id="chat-box"></div>
-  <form id="message-form">
-    <input type="text" id="message-input" placeholder="Type a message..." required />
-    <button class="send-btn" type="submit">Send</button>
-  </form>
+
+  <!-- Chat container -->
+  <div class="chat-container">
+    <div id="chat-box"></div>
+    <form id="message-form">
+      <input type="text" id="message-input" placeholder="Type a message..." required />
+      <button class="send-btn" type="submit">Send</button>
+    </form>
+  </div>
 </div>
 
 <script type="module">
