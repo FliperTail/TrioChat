@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v12.2</title>
+<title>TrioChat-demo v12.3</title>
 <link rel="icon" type="image/jpg" sizes="16x16" href="/assets/icons/favicon16x16.jpg">
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -332,16 +332,6 @@ registerBtn.addEventListener("click", async ()=>{
     localStorage.setItem("triochat_username",name);
     checkLogin(name);
   }
-});
-
-loginBtn.addEventListener("click", async ()=>{
-  const name = usernameInput.value.trim();
-  if(!name) return;
-  const usernameDoc = doc(db,"usernames",name);
-  const docSnap = await getDoc(usernameDoc);
-  if(!docSnap.exists()){ errorDiv.textContent="No such user. Please register first."; return; }
-  localStorage.setItem("triochat_username",name);
-  checkLogin(name);
 });
 
 loginKeyBtn.addEventListener("click", async ()=>{
