@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v12.8</title>
+<title>TrioChat-demo v12.7</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -67,9 +67,9 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
 <div id="chat-page">
   <h2>TrioChat</h2>
   <div id="room-select">
-    <div class="room-wrapper"><button class="room-btn" data-room="Room 1">Room 1</button><div class="room-count" id="count-Room 1">0 users</div></div>
-    <div class="room-wrapper"><button class="room-btn" data-room="Room 2">Room 2</button><div class="room-count" id="count-Room 2">0 users</div></div>
-    <div class="room-wrapper"><button class="room-btn" data-room="Room 3">Room 3</button><div class="room-count" id="count-Room 3">0 users</div></div>
+    <button class="room-btn" data-room="Room 1">Room 1</button>
+    <button class="room-btn" data-room="Room 2">Room 2</button>
+    <button class="room-btn" data-room="Room 3">Room 3</button>
     <button id="create-room-btn" style="background:#28a745;color:white;">+ Create Room</button>
     <button id="settings-btn" style="background:#6c757d;color:white;">Settings</button>
   </div>
@@ -209,23 +209,6 @@ function updateOnlineUsers() {
       onlineUsersMap.set(data.username, userItem);
     });
   });
-}
-
-// --- Room Online Count ---
-function updateRoomCounts() {
-  const counts = {};
-  document.querySelectorAll(".room-btn").forEach(btn=>{
-    const room = btn.dataset.room;
-    counts[room] = 0;
-  });
-  onlineUsersMap.forEach((el, user)=>{
-    if (!counts[currentRoom]) counts[currentRoom] = 0;
-    counts[currentRoom]++;
-  });
-  for (const room in counts) {
-    const el = document.getElementById("count-" + room);
-    if (el) el.textContent = counts[room] + " user" + (counts[room]===1?"":"s");
-  }
 }
 
 // --- Block/unblock ---
