@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v13.1</title>
+<title>TrioChat-demo v13.2</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -170,7 +170,7 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
   <button id="generate-key-btn-settings">Generate Login Key</button>
   <button id="dark-mode-toggle">Toggle Dark Mode</button>
   <button id="logout-btn">Logout</button>
-  <button id="close-settings">Close</button>
+  <button id="delete-account-btn" style="background:#dc3545;color:white;">Delete Account</button>
 </div>
 
 <div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
@@ -219,7 +219,7 @@ const settingsOverlay = document.getElementById("settings-overlay");
 const generateKeySettingsBtn = document.getElementById("generate-key-btn-settings");
 const darkModeToggleBtn = document.getElementById("dark-mode-toggle");
 const logoutBtn = document.getElementById("logout-btn");
-const closeSettingsBtn = document.getElementById("close-settings");
+const deleteAccountBtn = document.getElementById("delete-account-btn");
 
 let username = "";
 let currentRoom = "Room 1";
@@ -543,9 +543,29 @@ settingsBtn.onclick = ()=>{
   settingsPopup.style.display="block";
   settingsOverlay.style.display="block";
 };
-settingsOverlay.onclick = closeSettingsBtn.onclick = ()=>{
-  settingsPopup.style.display="none";
-  settingsOverlay.style.display="none";
+
+deleteAccountBtn.onclick = async () => {
+  const confirmDelete = confirm("Are you sure you want to delete your account? This cannot be undone.");
+  if (!confirmDelete) return;
+
+  try {
+    // Remove from online users
+    await deleteDoc(doc(db, "onlineUsers", username));
+    
+    // Delete username
+    await deleteDoc(doc(db, "usernames", username));
+    
+    // Delete login key
+    await deleteDoc(doc(db, "loginKeys", username));
+
+    // Clear local storage and reload
+    localStorage.removeItem("triochat_username");
+    alert("Your account has been deleted.");
+    location.reload();
+  } catch (err) {
+    console.error(err);
+    alert("Error deleting account. Check console.");
+  }
 };
 
 // Utility: hash string with SHA-256 and return hex
