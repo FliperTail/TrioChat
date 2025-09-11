@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v12</title>
+<title>TrioChat-demo v12.1</title>
 <link rel="icon" type="image/jpg" sizes="16x16" href="/assets/icons/favicon16x16.jpg">
 <style>
-body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; }
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
+.dark-theme body { background:#1e1e1e; color:white; }
 #username-page, #chat-page { display:none; width:100%; max-width:700px; flex-direction:column; align-items:center; }
 #username-page input { padding:10px; font-size:16px; }
 #username-page button { margin:5px; padding:10px 20px; font-size:16px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
@@ -14,28 +15,41 @@ h2 { text-align:center; background:#007bff; color:white; padding:10px 20px; marg
 #room-select { text-align:center; margin:10px 0; }
 #room-select button { margin:0 5px; padding:5px 10px; cursor:pointer; border:none; border-radius:5px; background:#ccc; color:black; }
 #room-select button.active { background:#007bff; color:white; }
-.chat-container { display:flex; width:100%; height:500px; background:#fff; border:1px solid #ccc; border-radius:5px; overflow:hidden; }
-#user-list { width:200px; border-right:1px solid #ccc; background:#f9f9f9; padding:10px; overflow-y:auto; display:flex; flex-direction:column; }
+.chat-container { display:flex; width:100%; height:500px; background:#fff; border:1px solid #ccc; border-radius:5px; overflow:hidden; transition: background 0.3s, color 0.3s; }
+.dark-theme .chat-container { background:#2c2c2c; color:white; border-color:#555; }
+#user-list { width:200px; border-right:1px solid #ccc; background:#f9f9f9; padding:10px; overflow-y:auto; display:flex; flex-direction:column; transition: background 0.3s; }
+.dark-theme #user-list { background:#333; border-color:#555; }
 #user-list h4 { margin-top:0; }
 #users { flex:1; }
-#status-box { border-top:1px solid #ccc; padding:8px; background:#eee; text-align:center; }
+#status-box { border-top:1px solid #ccc; padding:8px; background:#eee; text-align:center; transition: background 0.3s; }
+.dark-theme #status-box { background:#444; border-color:#555; }
 #status-box h5 { margin:4px 0; }
 #status-buttons button { margin:3px; padding:5px 10px; border:none; border-radius:5px; cursor:pointer; }
 .online-btn { background:#28a745; color:white; }
 .dnd-btn { background:#dc3545; color:white; }
 #chat-area { flex:1; display:flex; flex-direction:column; }
-#chat-box { flex:1; padding:10px; overflow-y:auto; background:#f9f9f9; }
-.msg { margin:5px 0; padding:8px 12px; background:#e1f5fe; border-radius:5px; }
-#message-form { display:flex; padding:10px; border-top:1px solid #ccc; background:#eee; }
+#chat-box { flex:1; padding:10px; overflow-y:auto; background:#f9f9f9; transition: background 0.3s, color 0.3s; }
+.dark-theme #chat-box { background:#222; color:white; }
+.msg { margin:5px 0; padding:8px 12px; background:#e1f5fe; border-radius:5px; transition: background 0.3s, color 0.3s; }
+.dark-theme .msg { background:#444; color:white; }
+#message-form { display:flex; padding:10px; border-top:1px solid #ccc; background:#eee; transition: background 0.3s; }
+.dark-theme #message-form { background:#444; border-color:#555; }
 #message-input { flex:1; padding:10px; border:1px solid #ccc; border-radius:5px; }
 button.send-btn { margin-left:10px; padding:10px 20px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
 button.send-btn:disabled { background:#999; cursor:not-allowed; }
-.user-item { padding:4px 6px; border-bottom:1px solid #ddd; }
+.user-item { padding:4px 6px; border-bottom:1px solid #ddd; transition: background 0.3s, color 0.3s; }
+.dark-theme .user-item { border-color:#555; }
 .user-name { font-weight:bold; }
 .user-buttons { margin-top:4px; display:flex; gap:4px; }
 .user-buttons button { flex:1; font-size:11px; padding:3px; border:none; border-radius:3px; cursor:pointer; }
 .block-btn { background:#dc3545; color:white; }
 .dm-btn { background:#28a745; color:white; }
+/* Settings Popup */
+#settings-popup { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:5px; box-shadow:0 2px 10px rgba(0,0,0,0.3); z-index:10000; width:250px; }
+.dark-theme #settings-popup { background:#333; color:white; }
+#settings-popup h3 { margin-top:0; text-align:center; }
+#settings-popup button { margin:5px 0; width:100%; padding:8px; cursor:pointer; border:none; border-radius:5px; }
+#settings-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; }
 </style>
 </head>
 <body>
@@ -58,6 +72,7 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
     <button class="room-btn" data-room="Room 2">Room 2</button>
     <button class="room-btn" data-room="Room 3">Room 3</button>
     <button id="create-room-btn" style="background:#28a745;color:white;">+ Create Room</button>
+    <button id="settings-btn" style="background:#6c757d;color:white;">Settings</button>
   </div>
 
   <div class="chat-container">
@@ -70,7 +85,6 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
           <button class="online-btn">Online</button>
           <button class="dnd-btn">Do Not Disturb</button>
         </div>
-        <button id="generate-key-btn" style="margin-top:8px;">Generate Login Key</button>
       </div>
     </div>
     <div id="chat-area">
@@ -81,6 +95,16 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
       </form>
     </div>
   </div>
+</div>
+
+<!-- Settings Popup -->
+<div id="settings-overlay"></div>
+<div id="settings-popup">
+  <h3>Settings</h3>
+  <button id="generate-key-btn-settings">Generate Login Key</button>
+  <button id="dark-mode-toggle">Toggle Dark Mode</button>
+  <button id="logout-btn">Logout</button>
+  <button id="close-settings">Close</button>
 </div>
 
 <div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
@@ -114,11 +138,18 @@ const roomButtonsContainer = document.getElementById("room-select");
 let roomButtons = document.querySelectorAll(".room-btn");
 const usersDiv = document.getElementById("users");
 const statusUsername = document.getElementById("status-username");
-const generateKeyBtn = document.getElementById("generate-key-btn");
 
 const registerBtn = document.getElementById("register-btn");
 const loginBtn = document.getElementById("login-btn");
 const loginKeyBtn = document.getElementById("login-key-btn");
+
+const settingsBtn = document.getElementById("settings-btn");
+const settingsPopup = document.getElementById("settings-popup");
+const settingsOverlay = document.getElementById("settings-overlay");
+const generateKeySettingsBtn = document.getElementById("generate-key-btn-settings");
+const darkModeToggleBtn = document.getElementById("dark-mode-toggle");
+const logoutBtn = document.getElementById("logout-btn");
+const closeSettingsBtn = document.getElementById("close-settings");
 
 let username = "";
 let currentRoom = "Room 1";
@@ -185,15 +216,11 @@ function toggleBlock(name, btn) {
   refreshMessages();
 }
 
-// --- DM handling (unchanged) ---
+// --- DM handling ---
 const dmContainer = document.getElementById("dm-container");
 const dmWindows = new Map();
-
 function openDMModal(otherUser) {
-  if (blockedUsers.includes(otherUser)) {
-    alert("You have ignored this user. You cannot DM them.");
-    return;
-  }
+  if (blockedUsers.includes(otherUser)) { alert("You have ignored this user. You cannot DM them."); return; }
   if (dmWindows.has(otherUser)) return;
 
   const dmWindow = document.createElement("div");
@@ -278,16 +305,8 @@ function openDMModal(otherUser) {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
-    if (blockedUsers.includes(otherUser)) {
-      alert("You have ignored this user. Cannot send DM.");
-      return;
-    }
-    await addDoc(collection(db,"messages"), {
-      username,
-      text,
-      room: roomName,
-      timestamp: serverTimestamp()
-    });
+    if (blockedUsers.includes(otherUser)) { alert("You have ignored this user. Cannot send DM."); return; }
+    await addDoc(collection(db,"messages"), { username, text, room: roomName, timestamp: serverTimestamp() });
   });
 }
 
@@ -304,22 +323,19 @@ usernamePage.style.display="flex";
 const savedUsername = localStorage.getItem("triochat_username");
 if (savedUsername) checkLogin(savedUsername);
 
-// Register
 registerBtn.addEventListener("click", async ()=>{
   const name = usernameInput.value.trim();
   if(!name) return;
   const usernameDoc = doc(db,"usernames",name);
   const docSnap = await getDoc(usernameDoc);
-  if(docSnap.exists()){
-    errorDiv.textContent="Username is already taken.";
-  } else {
+  if(docSnap.exists()){ errorDiv.textContent="Username is already taken."; } 
+  else {
     await setDoc(usernameDoc,{created:serverTimestamp()});
     localStorage.setItem("triochat_username",name);
     checkLogin(name);
   }
 });
 
-// Login without key
 loginBtn.addEventListener("click", async ()=>{
   const name = usernameInput.value.trim();
   if(!name) return;
@@ -330,7 +346,6 @@ loginBtn.addEventListener("click", async ()=>{
   checkLogin(name);
 });
 
-// Login with key
 loginKeyBtn.addEventListener("click", async ()=>{
   const name=usernameInput.value.trim();
   if(!name){alert("Enter a username first!"); return;}
@@ -463,12 +478,34 @@ document.getElementById("create-room-btn").addEventListener("click", async ()=>{
   }
 });
 
-// --- Generate Login Key ---
-generateKeyBtn.addEventListener("click", async ()=>{
+// --- Settings Popup ---
+settingsBtn.onclick = ()=>{
+  settingsPopup.style.display="block";
+  settingsOverlay.style.display="block";
+};
+settingsOverlay.onclick = closeSettingsBtn.onclick = ()=>{
+  settingsPopup.style.display="none";
+  settingsOverlay.style.display="none";
+};
+
+// Generate key
+generateKeySettingsBtn.onclick = async ()=>{
   const key=Math.random().toString(36).substring(2,10).toUpperCase();
   await setDoc(doc(db,"loginKeys",username),{key,timestamp:serverTimestamp()});
   alert("Your login key is: "+key);
-});
+};
+
+// Dark mode
+darkModeToggleBtn.onclick = ()=>{
+  document.body.classList.toggle("dark-theme");
+};
+
+// Logout
+logoutBtn.onclick = async ()=>{
+  await deleteDoc(doc(db,"onlineUsers",username));
+  localStorage.removeItem("triochat_username");
+  location.reload();
+};
 </script>
 </body>
 </html>
