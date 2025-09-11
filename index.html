@@ -7,7 +7,7 @@
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; }
 #username-page, #chat-page { display:none; width:100%; max-width:700px; flex-direction:column; align-items:center; }
 #username-page input { padding:10px; font-size:16px; }
-#username-page button { margin-left:10px; padding:10px 20px; font-size:16px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
+#username-page button { margin:5px; padding:10px 20px; font-size:16px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
 #error { color:red; margin-top:10px; text-align:center; }
 h2 { text-align:center; background:#007bff; color:white; padding:10px 20px; margin:10px 0; border-radius:5px; display:inline-block; }
 #room-select { text-align:center; margin:10px 0; }
@@ -40,9 +40,13 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
 <body>
 
 <div id="username-page">
-  <h2>Enter a username</h2>
+  <h2>Welcome to TrioChat</h2>
   <input type="text" id="username-input" placeholder="Username" />
-  <button id="submit-username">Enter Chat</button>
+  <div style="margin-top:10px;">
+    <button id="register-btn">Register</button>
+    <button id="login-btn">Enter Chat</button>
+    <button id="login-key-btn">Login with Key</button>
+  </div>
   <div id="error"></div>
 </div>
 
@@ -65,6 +69,7 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
           <button class="online-btn">Online</button>
           <button class="dnd-btn">Do Not Disturb</button>
         </div>
+        <button id="generate-key-btn" style="margin-top:8px;">Generate Login Key</button>
       </div>
     </div>
     <div id="chat-area">
@@ -99,7 +104,6 @@ const db = getFirestore(app);
 const usernamePage = document.getElementById("username-page");
 const chatPage = document.getElementById("chat-page");
 const usernameInput = document.getElementById("username-input");
-const submitUsername = document.getElementById("submit-username");
 const errorDiv = document.getElementById("error");
 const chatBox = document.getElementById('chat-box');
 const messageForm = document.getElementById('message-form');
@@ -109,6 +113,11 @@ const roomButtonsContainer = document.getElementById("room-select");
 let roomButtons = document.querySelectorAll(".room-btn");
 const usersDiv = document.getElementById("users");
 const statusUsername = document.getElementById("status-username");
+const generateKeyBtn = document.getElementById("generate-key-btn");
+
+const registerBtn = document.getElementById("register-btn");
+const loginBtn = document.getElementById("login-btn");
+const loginKeyBtn = document.getElementById("login-key-btn");
 
 let username = "";
 let currentRoom = "Room 1";
@@ -175,16 +184,16 @@ function toggleBlock(name, btn) {
   refreshMessages();
 }
 
+// --- DM handling (unchanged) ---
 const dmContainer = document.getElementById("dm-container");
-const dmWindows = new Map(); // Track open DM windows
+const dmWindows = new Map();
 
 function openDMModal(otherUser) {
   if (blockedUsers.includes(otherUser)) {
     alert("You have ignored this user. You cannot DM them.");
-    return; // Prevent opening DM if user is ignored
+    return;
   }
-  
-  if (dmWindows.has(otherUser)) return; // DM already open
+  if (dmWindows.has(otherUser)) return;
 
   const dmWindow = document.createElement("div");
   dmWindow.style.width = "250px";
@@ -197,7 +206,6 @@ function openDMModal(otherUser) {
   dmWindow.style.position = "relative";
   dmWindow.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
 
-  // Header
   const header = document.createElement("div");
   header.style.background = "#007bff";
   header.style.color = "#fff";
@@ -214,14 +222,13 @@ function openDMModal(otherUser) {
   closeBtn.style.border = "none";
   closeBtn.style.cursor = "pointer";
   closeBtn.onclick = () => {
-    unsubscribeDM(); // stop listener
+    unsubscribeDM();
     dmWindow.remove();
     dmWindows.delete(otherUser);
   };
   header.appendChild(closeBtn);
   dmWindow.appendChild(header);
 
-  // Chat box
   const chatBox = document.createElement("div");
   chatBox.style.flex = "1";
   chatBox.style.padding = "5px";
@@ -229,7 +236,6 @@ function openDMModal(otherUser) {
   chatBox.style.background = "#f9f9f9";
   dmWindow.appendChild(chatBox);
 
-  // Input form
   const form = document.createElement("form");
   form.style.display = "flex";
   const input = document.createElement("input");
@@ -250,15 +256,14 @@ function openDMModal(otherUser) {
   const roomName = [username, otherUser].sort().join("_DM_");
   let unsubscribeDM = null;
 
-  // Firestore listener for this DM
   const messagesRef = collection(db, "messages");
   const q = query(messagesRef, orderBy("timestamp"));
   unsubscribeDM = onSnapshot(q, snapshot => {
-    chatBox.innerHTML = ""; // clear each time
+    chatBox.innerHTML = "";
     snapshot.forEach(docSnap => {
       const data = docSnap.data();
       if (data.room !== roomName) return;
-      if (blockedUsers.includes(data.username)) return; // Skip messages from blocked users
+      if (blockedUsers.includes(data.username)) return;
       const msg = document.createElement("div");
       msg.textContent = `${data.username}: ${data.text}`;
       msg.style.margin = "2px 0";
@@ -272,7 +277,6 @@ function openDMModal(otherUser) {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
-    // Prevent sending if the recipient is blocked
     if (blockedUsers.includes(otherUser)) {
       alert("You have ignored this user. Cannot send DM.");
       return;
@@ -299,7 +303,8 @@ usernamePage.style.display="flex";
 const savedUsername = localStorage.getItem("triochat_username");
 if (savedUsername) checkLogin(savedUsername);
 
-submitUsername.addEventListener("click", async ()=>{
+// Register
+registerBtn.addEventListener("click", async ()=>{
   const name = usernameInput.value.trim();
   if(!name) return;
   const usernameDoc = doc(db,"usernames",name);
@@ -311,6 +316,32 @@ submitUsername.addEventListener("click", async ()=>{
     localStorage.setItem("triochat_username",name);
     checkLogin(name);
   }
+});
+
+// Login without key
+loginBtn.addEventListener("click", async ()=>{
+  const name = usernameInput.value.trim();
+  if(!name) return;
+  const usernameDoc = doc(db,"usernames",name);
+  const docSnap = await getDoc(usernameDoc);
+  if(!docSnap.exists()){ errorDiv.textContent="No such user. Please register first."; return; }
+  localStorage.setItem("triochat_username",name);
+  checkLogin(name);
+});
+
+// Login with key
+loginKeyBtn.addEventListener("click", async ()=>{
+  const name=usernameInput.value.trim();
+  if(!name){alert("Enter a username first!"); return;}
+  const keyInput = prompt("Enter your login key:");
+  if(!keyInput) return;
+  const keyDoc = await getDoc(doc(db,"loginKeys",name));
+  if(!keyDoc.exists()){alert("No key found for this username."); return;}
+  const data=keyDoc.data();
+  if(data.key!==keyInput){alert("Invalid key!"); return;}
+  localStorage.setItem("triochat_username", name);
+  checkLogin(name);
+  await deleteDoc(doc(db,"loginKeys",name));
 });
 
 function checkLogin(name){
@@ -389,81 +420,55 @@ async function startChat(room){
       const data = change.doc.data();
       if(data.room!==room) return;
       if(change.type==="added") cachedMessages.push({id:change.doc.id,...data});
-      if(change.type==="modified") cachedMessages = cachedMessages.map(m=>m.id===change.doc.id?{id:change.doc.id,...data}:m);
-      if(change.type==="removed") cachedMessages = cachedMessages.filter(m=>m.id!==change.doc.id);
+      if(change.type==="modified"){ const idx=cachedMessages.findIndex(m=>m.id===change.doc.id); if(idx!==-1) cachedMessages[idx]={id:change.doc.id,...data}; }
+      if(change.type==="removed"){ cachedMessages = cachedMessages.filter(m=>m.id!==change.doc.id); }
     });
-    refreshMessages();
+    renderMessages();
   });
 }
 
-function refreshMessages(){
+function renderMessages(){
   chatBox.innerHTML="";
   cachedMessages.forEach(data=>{
     if(blockedUsers.includes(data.username)) return;
-    const msg = document.createElement("div");
+    const msg=document.createElement("div");
     msg.classList.add("msg");
     msg.textContent=`${data.username}: ${data.text}`;
     chatBox.appendChild(msg);
   });
-  chatBox.scrollTop = chatBox.scrollHeight;
+  chatBox.scrollTop=chatBox.scrollHeight;
 }
+function refreshMessages(){ renderMessages(); }
 
-// --- Send ---
 messageForm.addEventListener("submit", async e=>{
   e.preventDefault();
-  const text = messageInput.value.trim();
+  const text=messageInput.value.trim();
   if(!text) return;
   messageInput.value="";
   sendButton.disabled=true;
-  setTimeout(()=>sendButton.disabled=false,500);
-  await addDoc(collection(db,"messages"), { username, text, room:currentRoom, timestamp:serverTimestamp() });
+  await addDoc(collection(db,"messages"),{username,text,room:currentRoom,timestamp:serverTimestamp()});
+  sendButton.disabled=false;
 });
 
-// --- LOGIN KEY SYSTEM ---
-function generateLoginKey(length=6){
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let key='';
-  for(let i=0;i<length;i++) key+=chars.charAt(Math.floor(Math.random()*chars.length));
-  return key;
-}
+// --- Create room ---
+document.getElementById("create-room-btn").addEventListener("click", async ()=>{
+  const roomName=prompt("Enter new room name:");
+  if(!roomName) return;
+  const type=prompt("Type 'public' or 'private':").toLowerCase();
+  if(type!=="private" && type!=="public"){alert("Invalid type."); return;}
+  if(type==="private"){ const otherUser=prompt("Enter username to share with:"); if(!otherUser)return;
+    await setDoc(doc(db,"rooms",roomName),{private:true,allowedUsers:[username,otherUser]});
+  } else {
+    await setDoc(doc(db,"rooms",roomName),{private:false});
+  }
+});
 
-// Generate Key Button
-const generateKeyBtn = document.createElement("button");
-generateKeyBtn.textContent = "Generate Login Key";
-generateKeyBtn.style.marginTop="10px";
-usernamePage.appendChild(generateKeyBtn);
-
+// --- Generate Login Key ---
 generateKeyBtn.addEventListener("click", async ()=>{
-  const name=usernameInput.value.trim();
-  if(!name){alert("Enter a username first!"); return;}
-  const usernameDoc=doc(db,"usernames",name);
-  const docSnap=await getDoc(usernameDoc);
-  if(!docSnap.exists()){alert("Username does not exist. Please register first."); return;}
-  const key = generateLoginKey();
-  await setDoc(doc(db,"loginKeys",name), { key, timestamp: serverTimestamp() });
-  alert(`Your login key for ${name} is:\n\n${key}\n\nUse this key to log in on another device.`);
-});
-
-// Login with Key Button
-const loginWithKeyBtn = document.createElement("button");
-loginWithKeyBtn.textContent = "Login with Key";
-loginWithKeyBtn.style.marginTop="5px";
-usernamePage.appendChild(loginWithKeyBtn);
-
-loginWithKeyBtn.addEventListener("click", async ()=>{
-  const name=usernameInput.value.trim();
-  if(!name){alert("Enter a username first!"); return;}
-  const keyInput = prompt("Enter your login key:");
-  if(!keyInput) return;
-  const keyDoc = await getDoc(doc(db,"loginKeys",name));
-  if(!keyDoc.exists()){alert("No key found for this username."); return;}
-  const data=keyDoc.data();
-  if(data.key!==keyInput){alert("Invalid key!"); return;}
-  localStorage.setItem("triochat_username", name);
-  checkLogin(name);
-  await deleteDoc(doc(db,"loginKeys",name));
+  const key=Math.random().toString(36).substring(2,10).toUpperCase();
+  await setDoc(doc(db,"loginKeys",username),{key,timestamp:serverTimestamp()});
+  alert("Your login key is: "+key);
 });
 </script>
-
 </body>
 </html>
