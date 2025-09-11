@@ -2,18 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v12.5</title>
-<script>
-if(localStorage.getItem("darkMode") === "true"){
-  document.body.classList.add("dark-theme");
-
-  // Update any existing DM windows
-  dmWindows.forEach(dmWindow => {
-    dmWindow.style.background = "#222";
-    dmWindow.style.color = "white";
-  });
-}
-</script>
+<title>TrioChat-demo v12.6</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -119,6 +108,11 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
 <div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
 
 <script type="module">
+// Apply saved dark mode
+if (localStorage.getItem("darkMode") === "true") {
+  document.body.classList.add("dark-theme");
+}
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
@@ -497,17 +491,6 @@ generateKeySettingsBtn.onclick = async ()=>{
 darkModeToggleBtn.onclick = () => {
   const isDark = document.body.classList.toggle("dark-theme");
   localStorage.setItem("darkMode", isDark ? "true" : "false");
-
-  // Update DM windows dynamically
-  dmWindows.forEach(dmWindow => {
-    if(isDark){
-      dmWindow.style.background = "#222";
-      dmWindow.style.color = "white";
-    } else {
-      dmWindow.style.background = "#fff";
-      dmWindow.style.color = "black";
-    }
-  });
 };
 
 // Logout
