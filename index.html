@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo</title>
+<title>TrioChat-demo v12</title>
+<link rel="icon" type="image/jpg" sizes="16x16" href="/assets/icons/favicon16x16.jpg">
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; }
 #username-page, #chat-page { display:none; width:100%; max-width:700px; flex-direction:column; align-items:center; }
@@ -341,7 +342,6 @@ loginKeyBtn.addEventListener("click", async ()=>{
   if(data.key!==keyInput){alert("Invalid key!"); return;}
   localStorage.setItem("triochat_username", name);
   checkLogin(name);
-  await deleteDoc(doc(db,"loginKeys",name));
 });
 
 function checkLogin(name){
