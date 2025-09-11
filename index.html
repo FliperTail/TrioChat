@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v14.3.3</title>
+<title>TrioChat-demo v14.3.4</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -193,6 +193,8 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
   <button id="logout-btn">Logout</button>
   <button id="delete-account-btn" style="background:#dc3545;color:white;">Delete Account</button>
 </div>
+
+<div id="settings-overlay"></div>
 
 <div id="admin-popup" style="display:none; position:fixed; top:50%; left:50%; 
 transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:5px; 
@@ -437,7 +439,7 @@ async function isAdmin(username) {
   return false;
 }
 
-if (!isAdmin()) {
+if (!(await isAdmin(username))) {
   adminBtn.style.display = "none";
 }
 
