@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v12.6</title>
+<title>TrioChat-demo v12.7</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -49,6 +49,7 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
 #settings-popup h3 { margin-top:0; text-align:center; }
 #settings-popup button { margin:5px 0; width:100%; padding:8px; cursor:pointer; border:none; border-radius:5px; }
 #settings-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; }
+.badge { width: 16px; height: 16px; vertical-align: middle; margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -180,8 +181,13 @@ function updateOnlineUsers() {
       const userItem = document.createElement("div");
       userItem.classList.add("user-item");
       const statusLabel = data.status === "dnd" ? " (DND)" : "";
-      userItem.innerHTML = `<div class="user-name">${data.username}${statusLabel}</div>`;
+      let badgeHTML = "";
+      if (data.username === "FliperTail") {
+        badgeHTML = ` <img src="assets/badges/developer-badge.png" alt="DEV" class="badge">`;
+      }
 
+      userItem.innerHTML = `<div class="user-name">${data.username}${statusLabel}${badgeHTML}</div>`;
+      
       const btns = document.createElement("div");
       btns.classList.add("user-buttons");
 
