@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v14.2</title>
+<title>TrioChat-demo v14.3</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -148,6 +148,7 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
     <button class="room-btn" data-room="Room 3">Room 3</button>
     <button id="create-room-btn" style="background:#28a745;color:white;">+ Create Room</button>
     <button id="settings-btn" style="background:#6c757d;color:white;">Settings</button>
+    <button id="admin-btn" style="background:#9935dc;color:white;">Admin Panel</button>
   </div>
 
   <div class="chat-container">
@@ -191,6 +192,20 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
   <button id="dark-mode-toggle">Toggle Dark Mode</button>
   <button id="logout-btn">Logout</button>
   <button id="delete-account-btn" style="background:#dc3545;color:white;">Delete Account</button>
+</div>
+
+<div id="admin-popup" style="display:none; position:fixed; top:50%; left:50%; 
+transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:5px; 
+box-shadow:0 2px 10px rgba(0,0,0,0.3); z-index:10001; width:300px; max-height:400px; overflow:auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+    <h3 style="margin:0; flex:1; text-align:center;">Admin Panel</h3>
+    <button id="close-admin-btn" style="background:#dc3545; color:white; border:none; border-radius:5px;
+      width:25px; height:25px; font-size:12px; cursor:pointer;">X</button>
+  </div>
+  <div id="admin-content">
+    <p>Manage users here:</p>
+    <div id="admin-user-list"></div>
+  </div>
 </div>
 
 <div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
@@ -389,6 +404,50 @@ function openDMModal(otherUser) {
     if (blockedUsers.includes(otherUser)) { alert("You have ignored this user. Cannot send DM."); return; }
     await addDoc(collection(db,"messages"), { username, text, room: roomName, timestamp: serverTimestamp() });
   });
+}
+
+const adminBtn = document.getElementById("admin-btn");
+const adminPopup = document.getElementById("admin-popup");
+const closeAdminBtn = document.getElementById("close-admin-btn");
+const adminUserList = document.getElementById("admin-user-list");
+
+// Show only if user is admin
+async function isAdmin(username) {
+  const userRef = doc(db, "usernames", username);
+  const userSnap = await getDoc(userRef);
+  if (userSnap.exists()) {
+    const data = userSnap.data();
+    return data.role === "developer";
+  }
+  return false;
+}
+
+if (!isAdmin()) {
+  adminBtn.style.display = "none";
+}
+
+adminBtn.onclick = () => {
+  adminPopup.style.display = "block";
+  loadAdminUsers();
+};
+
+closeAdminBtn.onclick = () => {
+  adminPopup.style.display = "none";
+};
+
+// Load all registered users into panel
+async function loadAdminUsers() {
+  adminUserList.innerHTML = "";
+  const usersSnap = await getDoc(doc(db, "usernames", username));
+  // OR query all usernames:
+  // const snapshot = await getDocs(collection(db,"usernames"));
+
+  // Example single doc:
+  if (usersSnap.exists()) {
+    const div = document.createElement("div");
+    div.textContent = "Manage: " + usersSnap.id;
+    adminUserList.appendChild(div);
+  }
 }
 
 // --- Status controls ---
