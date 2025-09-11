@@ -2,8 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v12.4</title>
-<link rel="icon" type="image/jpg" sizes="16x16" href="/assets/icons/favicon16x16.jpg">
+<title>TrioChat-demo v12.5</title>
+<script>
+if(localStorage.getItem("darkMode") === "true"){
+  document.body.classList.add("dark-theme");
+
+  // Update any existing DM windows
+  dmWindows.forEach(dmWindow => {
+    dmWindow.style.background = "#222";
+    dmWindow.style.color = "white";
+  });
+}
+</script>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -484,8 +494,20 @@ generateKeySettingsBtn.onclick = async ()=>{
 };
 
 // Dark mode
-darkModeToggleBtn.onclick = ()=>{
-  document.body.classList.toggle("dark-theme");
+darkModeToggleBtn.onclick = () => {
+  const isDark = document.body.classList.toggle("dark-theme");
+  localStorage.setItem("darkMode", isDark ? "true" : "false");
+
+  // Update DM windows dynamically
+  dmWindows.forEach(dmWindow => {
+    if(isDark){
+      dmWindow.style.background = "#222";
+      dmWindow.style.color = "white";
+    } else {
+      dmWindow.style.background = "#fff";
+      dmWindow.style.color = "black";
+    }
+  });
 };
 
 // Logout
