@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v12.7</title>
+<title>TrioChat-demo v13</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -43,13 +43,80 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
 .user-buttons button { flex:1; font-size:11px; padding:3px; border:none; border-radius:3px; cursor:pointer; }
 .block-btn { background:#dc3545; color:white; }
 .dm-btn { background:#28a745; color:white; }
-/* Settings Popup */
 #settings-popup { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:5px; box-shadow:0 2px 10px rgba(0,0,0,0.3); z-index:10000; width:250px; }
 .dark-theme #settings-popup { background:#333; color:white; }
 #settings-popup h3 { margin-top:0; text-align:center; }
 #settings-popup button { margin:5px 0; width:100%; padding:8px; cursor:pointer; border:none; border-radius:5px; }
 #settings-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; }
 .badge { width: 24px; height: 24px; vertical-align: middle; margin-left: 4px; }
+.dm-window {
+  width: 250px;
+  height: 300px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+.dark-theme .dm-window {
+  background: #2c2c2c;
+  border-color: #555;
+  color: white;
+}
+
+.dm-header {
+  background: #007bff;
+  color: #fff;
+  padding: 5px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dm-chat {
+  flex: 1;
+  padding: 5px;
+  overflow-y: auto;
+  background: #f9f9f9;
+}
+.dark-theme .dm-chat {
+  background: #222;
+  color: white;
+}
+
+.dm-form {
+  display: flex;
+  border-top: 1px solid #ccc;
+}
+.dark-theme .dm-form {
+  border-color: #555;
+}
+.dm-form input {
+  flex: 1;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 0;
+  outline: none;
+}
+.dark-theme .dm-form input {
+  background: #333;
+  border-color: #555;
+  color: white;
+}
+.dm-form button {
+  padding: 6px 12px;
+  border: none;
+  background: #007bff;
+  color: white;
+  cursor: pointer;
+}
+.dm-form button:hover {
+  background: #0062cc;
+}
 </style>
 </head>
 <body>
@@ -228,34 +295,25 @@ function toggleBlock(name, btn) {
 const dmContainer = document.getElementById("dm-container");
 const dmWindows = new Map();
 function openDMModal(otherUser) {
-  if (blockedUsers.includes(otherUser)) { alert("You have ignored this user. You cannot DM them."); return; }
+  if (blockedUsers.includes(otherUser)) {
+    alert("You have ignored this user. You cannot DM them.");
+    return;
+  }
   if (dmWindows.has(otherUser)) return;
 
   const dmWindow = document.createElement("div");
-  dmWindow.style.width = "250px";
-  dmWindow.style.height = "300px";
-  dmWindow.style.background = "#fff";
-  dmWindow.style.border = "1px solid #ccc";
-  dmWindow.style.borderRadius = "5px";
-  dmWindow.style.display = "flex";
-  dmWindow.style.flexDirection = "column";
-  dmWindow.style.position = "relative";
-  dmWindow.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+  dmWindow.classList.add("dm-window");
 
   const header = document.createElement("div");
-  header.style.background = "#007bff";
-  header.style.color = "#fff";
-  header.style.padding = "5px";
-  header.style.fontWeight = "bold";
-  header.style.display = "flex";
-  header.style.justifyContent = "space-between";
+  header.classList.add("dm-header");
   header.textContent = otherUser;
 
   const closeBtn = document.createElement("button");
-  closeBtn.textContent = "X";
+  closeBtn.textContent = "×";
   closeBtn.style.background = "transparent";
-  closeBtn.style.color = "#fff";
   closeBtn.style.border = "none";
+  closeBtn.style.color = "white";
+  closeBtn.style.fontSize = "16px";
   closeBtn.style.cursor = "pointer";
   closeBtn.onclick = () => {
     unsubscribeDM();
@@ -266,19 +324,14 @@ function openDMModal(otherUser) {
   dmWindow.appendChild(header);
 
   const chatBox = document.createElement("div");
-  chatBox.style.flex = "1";
-  chatBox.style.padding = "5px";
-  chatBox.style.overflowY = "auto";
-  chatBox.style.background = "#f9f9f9";
+  chatBox.classList.add("dm-chat");
   dmWindow.appendChild(chatBox);
 
   const form = document.createElement("form");
-  form.style.display = "flex";
+  form.classList.add("dm-form");
   const input = document.createElement("input");
   input.type = "text";
   input.placeholder = "Type a message..";
-  input.style.flex = "1";
-  input.style.padding = "5px";
   const sendBtn = document.createElement("button");
   sendBtn.textContent = "Send";
   sendBtn.type = "submit";
@@ -345,14 +398,23 @@ registerBtn.addEventListener("click", async ()=>{
 });
 
 loginKeyBtn.addEventListener("click", async ()=>{
-  const name=usernameInput.value.trim();
-  if(!name){alert("Enter a username first!"); return;}
+  const name = usernameInput.value.trim();
+  if(!name){ alert("Enter a username first!"); return; }
+
   const keyInput = prompt("Enter your login key:");
   if(!keyInput) return;
-  const keyDoc = await getDoc(doc(db,"loginKeys",name));
-  if(!keyDoc.exists()){alert("No key found for this username."); return;}
-  const data=keyDoc.data();
-  if(data.key!==keyInput){alert("Invalid key!"); return;}
+
+  const keyDoc = await getDoc(doc(db, "loginKeys", name));
+  if(!keyDoc.exists()){ alert("No key found for this username."); return; }
+
+  const hashedInput = await hashKey(keyInput); // hash the entered key
+  const data = keyDoc.data();
+
+  if(data.key !== hashedInput){ 
+    alert("Invalid key!"); 
+    return; 
+  }
+
   localStorage.setItem("triochat_username", name);
   checkLogin(name);
 });
@@ -486,11 +548,27 @@ settingsOverlay.onclick = closeSettingsBtn.onclick = ()=>{
   settingsOverlay.style.display="none";
 };
 
+// Utility: hash string with SHA-256 and return hex
+async function hashKey(key) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(key);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 // Generate key
 generateKeySettingsBtn.onclick = async ()=>{
-  const key=Math.random().toString(36).substring(2,10).toUpperCase();
-  await setDoc(doc(db,"loginKeys",username),{key,timestamp:serverTimestamp()});
-  alert("Your login key is: "+key);
+  const key = Math.random().toString(36).substring(2,10).toUpperCase();
+  const hashedKey = await hashKey(key);
+
+  await setDoc(doc(db, "loginKeys", username), {
+    key: hashedKey,
+    timestamp: serverTimestamp()
+  });
+
+  alert("Your login key is: " + key);
 };
 
 // Dark mode
