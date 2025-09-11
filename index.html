@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v13.5</title>
+<title>TrioChat-demo v14</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -269,8 +269,8 @@ function updateOnlineUsers() {
       userItem.classList.add("user-item");
       const statusLabel = data.status === "dnd" ? " (DND)" : "";
       let badgeHTML = "";
-      if (data.username === "FliperTail") {
-        badgeHTML = ` <img src="assets/badges/developer-badge.png" alt="DEV" class="badge">`;
+      if (data.role === "developer") {
+        badgeHTML = `<img src="assets/badges/developer-badge.png" alt="DEV" class="badge">`;
       }
 
       userItem.innerHTML = `<div class="user-name">${data.username}${statusLabel}${badgeHTML}</div>`;
