@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v13.4</title>
+<title>TrioChat-demo v13.5</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -241,43 +241,62 @@ let unsubscribeRooms = null;
 let currentStatus = "online";
 
 // --- Update online users ---
-function updateOnlineUsers() {
-  const onlineRef = collection(db,"onlineUsers");
+async function updateOnlineUsers() {
+  const onlineRef = collection(db, "onlineUsers");
+
   setInterval(() => {
-    setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp(), status: currentStatus }, { merge:true });
+    setDoc(doc(db, "onlineUsers", username), { username, lastSeen: serverTimestamp(), status: currentStatus }, { merge: true });
   }, 5000);
 
-  onSnapshot(onlineRef, snapshot => {
+  onSnapshot(onlineRef, async snapshot => {
     const now = Date.now();
     usersDiv.innerHTML = "";
     onlineUsersMap.clear();
-    snapshot.forEach(docSnap => {
+
+    // Convert snapshot to array so we can use for...of with await
+    const docsArray = snapshot.docs;
+
+    for (const docSnap of docsArray) {
       const data = docSnap.data();
       const lastSeen = data.lastSeen?.toMillis() || 0;
-      if (lastSeen + 10000 <= now || data.username === username) return;
+      if (lastSeen + 10000 <= now || data.username === username) continue;
+
+      // Fetch role from usernames collection
+      let role = "";
+      try {
+        const userDoc = await getDoc(doc(db, "usernames", data.username));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          role = userData.role || "";
+        }
+      } catch (err) {
+        console.error("Failed to fetch user role:", err);
+      }
+
+      let badgeHTML = "";
+      if (role === "developer") {
+        badgeHTML = `<img src="assets/badges/developer-badge.png" alt="DEV" class="badge">`;
+      } else if (role === "admin") {
+        badgeHTML = `<img src="assets/badges/admin-badge.png" alt="ADMIN" class="badge">`;
+      }
 
       const userItem = document.createElement("div");
       userItem.classList.add("user-item");
       const statusLabel = data.status === "dnd" ? " (DND)" : "";
-      let badgeHTML = "";
-      if (data.username === "FliperTail") {
-        badgeHTML = ` <img src="assets/badges/developer-badge.png" alt="DEV" class="badge">`;
-      }
-
       userItem.innerHTML = `<div class="user-name">${data.username}${statusLabel}${badgeHTML}</div>`;
-      
+
       const btns = document.createElement("div");
       btns.classList.add("user-buttons");
 
       const blockBtn = document.createElement("button");
       blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
       blockBtn.className = "block-btn";
-      blockBtn.onclick = ()=>toggleBlock(data.username, blockBtn);
+      blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
 
       const dmBtn = document.createElement("button");
       dmBtn.textContent = "DM";
       dmBtn.className = "dm-btn";
-      dmBtn.onclick = ()=>openDMModal(data.username);
+      dmBtn.onclick = () => openDMModal(data.username);
 
       btns.appendChild(blockBtn);
       btns.appendChild(dmBtn);
@@ -285,7 +304,7 @@ function updateOnlineUsers() {
 
       usersDiv.appendChild(userItem);
       onlineUsersMap.set(data.username, userItem);
-    });
+    }
   });
 }
 
