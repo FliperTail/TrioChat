@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v14.3.1</title>
+<title>TrioChat-demo v14.3.2</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -411,6 +411,21 @@ const adminPopup = document.getElementById("admin-popup");
 const closeAdminBtn = document.getElementById("close-admin-btn");
 const adminUserList = document.getElementById("admin-user-list");
 
+// Load all registered users into panel
+async function loadAdminUsers() {
+  adminUserList.innerHTML = "";
+  const usersSnap = await getDoc(doc(db, "usernames", username));
+  // OR query all usernames:
+  // const snapshot = await getDocs(collection(db,"usernames"));
+
+  // Example single doc:
+  if (usersSnap.exists()) {
+    const div = document.createElement("div");
+    div.textContent = "Manage: " + usersSnap.id;
+    adminUserList.appendChild(div);
+  }
+}
+
 // Show only if user is admin
 async function isAdmin(username) {
   const userRef = doc(db, "onlineUsers", username);
@@ -434,21 +449,6 @@ adminBtn.onclick = () => {
 closeAdminBtn.onclick = () => {
   adminPopup.style.display = "none";
 };
-
-// Load all registered users into panel
-async function loadAdminUsers() {
-  adminUserList.innerHTML = "";
-  const usersSnap = await getDoc(doc(db, "usernames", username));
-  // OR query all usernames:
-  // const snapshot = await getDocs(collection(db,"usernames"));
-
-  // Example single doc:
-  if (usersSnap.exists()) {
-    const div = document.createElement("div");
-    div.textContent = "Manage: " + usersSnap.id;
-    adminUserList.appendChild(div);
-  }
-}
 
 // --- Status controls ---
 function setStatus(newStatus) {
@@ -498,12 +498,25 @@ loginKeyBtn.addEventListener("click", async ()=>{
   checkLogin(name);
 });
 
-function checkLogin(name){
+async function checkLogin(name){
   username = name;
   usernamePage.style.display="none";
   chatPage.style.display="flex";
   statusUsername.textContent = "You: " + username;
-  setDoc(doc(db,"onlineUsers",username), { username, lastSeen:serverTimestamp(), status: currentStatus });
+
+  await setDoc(doc(db,"onlineUsers",username), {
+    username,
+    lastSeen:serverTimestamp(),
+    status: currentStatus
+  });
+
+  // Show admin button if developer
+  if (await isAdmin(username)) {
+    adminBtn.style.display = "inline-block";
+  } else {
+    adminBtn.style.display = "none";
+  }
+
   updateOnlineUsers();
   loadRoomsRealtime();
   startChat(currentRoom);
@@ -618,19 +631,19 @@ document.getElementById("create-room-btn").addEventListener("click", async ()=>{
 });
 
 const closeSettingsTopBtn = document.getElementById("close-settings-top");
+settingsBtn.onclick = () => {
+  settingsPopup.style.display = "block";
+  settingsOverlay.style.display = "block";
+};
+
 closeSettingsTopBtn.onclick = () => {
   settingsPopup.style.display = "none";
   settingsOverlay.style.display = "none";
 };
 
-settingsBtn.onclick = () => {
-  settingsPopup.style.display = "block";
-  settingsOverlay.style.display = "block"; // show the black shade
-};
-
-settingsOverlay.onclick = closeSettingsTopBtn.onclick = () => {
+settingsOverlay.onclick = () => {
   settingsPopup.style.display = "none";
-  settingsOverlay.style.display = "none"; // hide the black shade
+  settingsOverlay.style.display = "none";
 };
 
 deleteAccountBtn.onclick = async () => {
