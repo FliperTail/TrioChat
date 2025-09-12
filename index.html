@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v13.8</title>
+<title>TrioChat-demo v13.7</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -252,25 +252,23 @@ async function updateOnlineUsers() {
     );
   }, 5000);
 
-onSnapshot(onlineRef, async snapshot => {
-  const now = Date.now();
+  onSnapshot(onlineRef, async snapshot => {
+    const now = Date.now();
 
-  const usersToShow = snapshot.docs
-    .map(docSnap => docSnap.data())
-    .filter(data => 
-      data.username !== username && 
-      (data.lastSeen?.toMillis() || 0) + 10000 > now
-    );
+    // Prepare array of users to display
+    const usersToShow = snapshot.docs
+      .map(docSnap => docSnap.data())
+      .filter(data => data.username !== username && (data.lastSeen?.toMillis() || 0) + 10000 > now);
 
-  // Fetch roles once
-  const roles = await Promise.all(usersToShow.map(async data => {
-    try {
-      const userDoc = await getDoc(doc(db, "usernames", data.username));
-      return { username: data.username, role: userDoc.exists() ? userDoc.data().role : "" };
-    } catch {
-      return { username: data.username, role: "" };
-    }
-  }));
+    // Fetch all roles in parallel
+    const roles = await Promise.all(usersToShow.map(async data => {
+      try {
+        const userDoc = await getDoc(doc(db, "usernames", data.username));
+        return { username: data.username, role: userDoc.exists() ? userDoc.data().role : "" };
+      } catch {
+        return { username: data.username, role: "" };
+      }
+    }));
 
 // Determine current user's role once
 let currentUserRole = "user";
@@ -564,54 +562,35 @@ function setActiveRoomButton(){
 
 // --- Chat ---
 let cachedMessages = [];
-async function startChat(room) {
-  chatBox.innerHTML = "";
-  cachedMessages = [];
+async function startChat(room){
+  chatBox.innerHTML="";
+  cachedMessages=[];
+  if(unsubscribeMessages) unsubscribeMessages();
 
-  // Unsubscribe old listener
-  if (unsubscribeMessages) unsubscribeMessages();
-
-  // Query only messages for the current room
-  const q = query(
-    collection(db, "messages"),
-    where("room", "==", room),
-    orderBy("timestamp")
-  );
-
-  unsubscribeMessages = onSnapshot(q, snapshot => {
-    snapshot.docChanges().forEach(change => {
-      const data = { id: change.doc.id, ...change.doc.data() };
-
-      if (change.type === "added") {
-        cachedMessages.push(data);
-      }
-      if (change.type === "modified") {
-        const idx = cachedMessages.findIndex(m => m.id === data.id);
-        if (idx !== -1) cachedMessages[idx] = data;
-      }
-      if (change.type === "removed") {
-        cachedMessages = cachedMessages.filter(m => m.id !== data.id);
-      }
+  const q = query(collection(db,"messages"), orderBy("timestamp"));
+  unsubscribeMessages = onSnapshot(q, snapshot=>{
+    snapshot.docChanges().forEach(change=>{
+      const data = change.doc.data();
+      if(data.room!==room) return;
+      if(change.type==="added") cachedMessages.push({id:change.doc.id,...data});
+      if(change.type==="modified"){ const idx=cachedMessages.findIndex(m=>m.id===change.doc.id); if(idx!==-1) cachedMessages[idx]={id:change.doc.id,...data}; }
+      if(change.type==="removed"){ cachedMessages = cachedMessages.filter(m=>m.id!==change.doc.id); }
     });
-
     renderMessages();
   });
 }
 
-function renderMessages() {
-  chatBox.innerHTML = "";
-  cachedMessages.forEach(data => {
-    // 🔹 Fix: check mute/blocked before rendering
-    if (blockedUsers.includes(data.username)) return;
-
-    const msg = document.createElement("div");
+function renderMessages(){
+  chatBox.innerHTML="";
+  cachedMessages.forEach(data=>{
+    if(blockedUsers.includes(data.username)) return;
+    const msg=document.createElement("div");
     msg.classList.add("msg");
-    msg.textContent = `${data.username}: ${data.text}`;
+    msg.textContent=`${data.username}: ${data.text}`;
     chatBox.appendChild(msg);
   });
-  chatBox.scrollTop = chatBox.scrollHeight;
+  chatBox.scrollTop=chatBox.scrollHeight;
 }
-
 function refreshMessages(){ renderMessages(); }
 
 messageForm.addEventListener("submit", async (e) => {
