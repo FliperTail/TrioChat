@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v13.6</title>
+<title>TrioChat-demo v13.7</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -270,43 +270,88 @@ async function updateOnlineUsers() {
       }
     }));
 
-    // Clear current user list
-    usersDiv.innerHTML = "";
-    onlineUsersMap.clear();
+// Determine current user's role once
+let currentUserRole = "user";
+const currentUserDoc = await getDoc(doc(db, "usernames", username));
+if(currentUserDoc.exists()) currentUserRole = currentUserDoc.data().role || "user";
 
-    // Rebuild user list
-    usersToShow.forEach((data, i) => {
-      const userItem = document.createElement("div");
-      userItem.classList.add("user-item");
+usersToShow.forEach((data, i) => {
+  const userItem = document.createElement("div");
+  userItem.classList.add("user-item");
 
-      const statusLabel = data.status === "dnd" ? " (DND)" : "";
+  const statusLabel = data.status === "dnd" ? " (DND)" : "";
 
-      let badgeHTML = "";
-      if (roles[i].role === "developer") {
-        badgeHTML = `<img src="assets/badges/developer-badge.png" alt="DEV" class="badge">`;
-      }
+  let badgeHTML = "";
+  if (roles[i].role === "developer") badgeHTML = `<img src="assets/badges/developer-badge.png" alt="DEV" class="badge">`;
+  if (roles[i].role === "admin") badgeHTML = `<img src="assets/badges/admin-badge.png" alt="ADMIN" class="badge">`;
 
-      userItem.innerHTML = `<div class="user-name">${data.username}${statusLabel}${badgeHTML}</div>`;
+  userItem.innerHTML = `<div class="user-name">${data.username}${statusLabel}${badgeHTML}</div>`;
 
-      const btns = document.createElement("div");
-      btns.classList.add("user-buttons");
+  const btns = document.createElement("div");
+  btns.classList.add("user-buttons");
 
-      const blockBtn = document.createElement("button");
-      blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
-      blockBtn.className = "block-btn";
-      blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
+  const blockBtn = document.createElement("button");
+  blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
+  blockBtn.className = "block-btn";
+  blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
+  btns.appendChild(blockBtn);
 
-      const dmBtn = document.createElement("button");
-      dmBtn.textContent = "DM";
-      dmBtn.className = "dm-btn";
-      dmBtn.onclick = () => openDMModal(data.username);
+  const dmBtn = document.createElement("button");
+  dmBtn.textContent = "DM";
+  dmBtn.className = "dm-btn";
+  dmBtn.onclick = () => openDMModal(data.username);
+  btns.appendChild(dmBtn);
 
-      btns.appendChild(blockBtn);
-      btns.appendChild(dmBtn);
-      userItem.appendChild(btns);
+  // --- Admin Panel Buttons ---
+  if (currentUserRole === "admin" || currentUserRole === "developer") {
+    const deleteMsgBtn = document.createElement("button");
+    deleteMsgBtn.textContent = "Delete Msgs";
+    deleteMsgBtn.style.background = "#dc3545";
+    deleteMsgBtn.onclick = async () => {
+      if (!confirm(`Delete all messages from ${data.username}?`)) return;
+      const messagesRef = collection(db, "messages");
+      const q = query(messagesRef, orderBy("timestamp"));
+      const snapshot = await getDocs(q);
+      snapshot.forEach(docSnap => {
+        const msgData = docSnap.data();
+        if(msgData.username === data.username) deleteDoc(doc(db,"messages",docSnap.id));
+      });
+    };
+    btns.appendChild(deleteMsgBtn);
 
-      usersDiv.appendChild(userItem);
-      onlineUsersMap.set(data.username, userItem);
+    const kickBtn = document.createElement("button");
+    kickBtn.textContent = "Kick";
+    kickBtn.style.background = "#ff9900";
+    kickBtn.onclick = async () => {
+      await deleteDoc(doc(db,"onlineUsers",data.username));
+      alert(`${data.username} was kicked.`);
+    };
+    btns.appendChild(kickBtn);
+
+    const muteBtn = document.createElement("button");
+    muteBtn.textContent = "Mute";
+    muteBtn.style.background = "#5555ff";
+    muteBtn.onclick = async () => {
+      await setDoc(doc(db,"mutedUsers",data.username), { muted: true }, { merge: true });
+      alert(`${data.username} has been muted.`);
+    };
+    btns.appendChild(muteBtn);
+
+    const banBtn = document.createElement("button");
+    banBtn.textContent = "Ban";
+    banBtn.style.background = "#000";
+    banBtn.style.color = "white";
+    banBtn.onclick = async () => {
+      await setDoc(doc(db,"bannedUsers",data.username), { banned: true });
+      await deleteDoc(doc(db,"onlineUsers",data.username));
+      alert(`${data.username} has been banned.`);
+    };
+    btns.appendChild(banBtn);
+  }
+
+  userItem.appendChild(btns);
+  usersDiv.appendChild(userItem);
+  onlineUsersMap.set(data.username, userItem);
     });
   });
 }
@@ -548,14 +593,34 @@ function renderMessages(){
 }
 function refreshMessages(){ renderMessages(); }
 
-messageForm.addEventListener("submit", async e=>{
+messageForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const text=messageInput.value.trim();
-  if(!text) return;
-  messageInput.value="";
-  sendButton.disabled=true;
-  await addDoc(collection(db,"messages"),{username,text,room:currentRoom,timestamp:serverTimestamp()});
-  sendButton.disabled=false;
+  const text = messageInput.value.trim();
+  if (!text) return;
+
+  // --- Mute/Ban Check ---
+  const muteDoc = await getDoc(doc(db, "mutedUsers", username));
+  if (muteDoc.exists() && muteDoc.data().muted) {
+    alert("You are muted and cannot send messages.");
+    return;
+  }
+
+  const banDoc = await getDoc(doc(db, "bannedUsers", username));
+  if (banDoc.exists() && banDoc.data().banned) {
+    alert("You are banned.");
+    location.reload(); // Kick them out
+    return;
+  }
+
+  // --- Normal message send ---
+  await addDoc(collection(db, "messages"), {
+    text,
+    username,
+    room: currentRoom,
+    timestamp: serverTimestamp(),
+  });
+
+  messageInput.value = "";
 });
 
 // --- Create room ---
