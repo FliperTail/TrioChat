@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v13.7.1</title>
+<title>TrioChat-demo v13.7.2</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -253,22 +253,26 @@ async function updateOnlineUsers() {
   }, 5000);
 
   onSnapshot(onlineRef, async snapshot => {
-    const now = Date.now();
+  const now = Date.now();
 
-    // Prepare array of users to display
-    const usersToShow = snapshot.docs
-      .map(docSnap => docSnap.data())
-      .filter(data => data.username !== username && (data.lastSeen?.toMillis() || 0) + 10000 > now);
+  // Clear user list each time before rebuilding
+  usersDiv.innerHTML = "";
+  onlineUsersMap.clear();
 
-    // Fetch all roles in parallel
-    const roles = await Promise.all(usersToShow.map(async data => {
-      try {
-        const userDoc = await getDoc(doc(db, "usernames", data.username));
-        return { username: data.username, role: userDoc.exists() ? userDoc.data().role : "" };
-      } catch {
-        return { username: data.username, role: "" };
-      }
-    }));
+  // Prepare array of users to display
+  const usersToShow = snapshot.docs
+    .map(docSnap => docSnap.data())
+    .filter(data => data.username !== username && (data.lastSeen?.toMillis() || 0) + 10000 > now);
+
+  // Fetch all roles in parallel
+  const roles = await Promise.all(usersToShow.map(async data => {
+    try {
+      const userDoc = await getDoc(doc(db, "usernames", data.username));
+      return { username: data.username, role: userDoc.exists() ? userDoc.data().role : "" };
+    } catch {
+      return { username: data.username, role: "" };
+    }
+  }));
 
 // Determine current user's role once
 let currentUserRole = "user";
