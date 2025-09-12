@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v13.7</title>
+<title>TrioChat-demo v13.7.1</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -583,6 +583,7 @@ async function startChat(room){
 function renderMessages(){
   chatBox.innerHTML="";
   cachedMessages.forEach(data=>{
+    const muteCheck = mutedUsers.includes(data.username);
     if(blockedUsers.includes(data.username)) return;
     const msg=document.createElement("div");
     msg.classList.add("msg");
@@ -591,6 +592,7 @@ function renderMessages(){
   });
   chatBox.scrollTop=chatBox.scrollHeight;
 }
+
 function refreshMessages(){ renderMessages(); }
 
 messageForm.addEventListener("submit", async (e) => {
