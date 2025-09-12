@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v13.7</title>
+<title>TrioChat-demo v14</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -186,6 +186,16 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
 
 <div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
 
+<div id="admin-panel-popup" style="display:none; position:fixed; top:100px; left:100px; width:300px; background:#fff; border:1px solid #ccc; border-radius:5px; box-shadow:0 2px 10px rgba(0,0,0,0.3); z-index:10000; cursor:move;">
+  <div id="admin-panel-header" style="padding:8px; background:#007bff; color:white; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+    Admin Panel
+    <button id="close-admin-panel" style="background:red;color:white;border:none;border-radius:3px;cursor:pointer;">X</button>
+  </div>
+  <div id="admin-users-list" style="max-height:400px; overflow-y:auto; padding:5px;"></div>
+</div>
+
+<button id="open-admin-panel" style="position: fixed; top: 10px; right: 10px; display:none; z-index:1000;">Admin Panel</button>
+
 <script type="module">
 // Apply saved dark mode
 if (localStorage.getItem("darkMode") === "true") {
@@ -241,118 +251,90 @@ let unsubscribeRooms = null;
 let currentStatus = "online";
 
 // --- Update online users ---
-async function updateOnlineUsers() {
+function updateOnlineUsers() {
   const onlineRef = collection(db, "onlineUsers");
 
-  // Update own status every 5s
+  // Keep presence updated
   setInterval(() => {
-    setDoc(doc(db, "onlineUsers", username), 
-      { username, lastSeen: serverTimestamp(), status: currentStatus }, 
+    setDoc(
+      doc(db, "onlineUsers", username),
+      { username, lastSeen: serverTimestamp(), status: currentStatus },
       { merge: true }
     );
   }, 5000);
 
   onSnapshot(onlineRef, async snapshot => {
     const now = Date.now();
+    const seenUsers = new Set();
 
-    // Prepare array of users to display
-    const usersToShow = snapshot.docs
-      .map(docSnap => docSnap.data())
-      .filter(data => data.username !== username && (data.lastSeen?.toMillis() || 0) + 10000 > now);
+    // Loop through Firestore users
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      const lastSeen = data.lastSeen?.toMillis() || 0;
 
-    // Fetch all roles in parallel
-    const roles = await Promise.all(usersToShow.map(async data => {
+      // Skip expired/offline or yourself
+      if (lastSeen + 10000 <= now || data.username === username) continue;
+
+      seenUsers.add(data.username);
+
+      // Already in list? Update status only
+      if (onlineUsersMap.has(data.username)) {
+        const userItem = onlineUsersMap.get(data.username);
+        const statusLabel = data.status === "dnd" ? " (DND)" : "";
+        userItem.querySelector(".user-name").innerHTML =
+          `${data.username}${statusLabel}${userItem.querySelector("img") ? userItem.querySelector("img").outerHTML : ""}`;
+        continue;
+      }
+
+      // New user → fetch role
+      let role = "";
       try {
         const userDoc = await getDoc(doc(db, "usernames", data.username));
-        return { username: data.username, role: userDoc.exists() ? userDoc.data().role : "" };
-      } catch {
-        return { username: data.username, role: "" };
+        if (userDoc.exists()) role = userDoc.data().role || "";
+      } catch (e) {
+        console.error("Failed to fetch role for", data.username, e);
       }
-    }));
 
-// Determine current user's role once
-let currentUserRole = "user";
-const currentUserDoc = await getDoc(doc(db, "usernames", username));
-if(currentUserDoc.exists()) currentUserRole = currentUserDoc.data().role || "user";
+      // Build UI
+      const userItem = document.createElement("div");
+      userItem.classList.add("user-item");
 
-usersToShow.forEach((data, i) => {
-  const userItem = document.createElement("div");
-  userItem.classList.add("user-item");
+      const statusLabel = data.status === "dnd" ? " (DND)" : "";
+      let badgeHTML = "";
+      if (role === "developer") badgeHTML = `<img src="assets/badges/developer-badge.png" alt="DEV" class="badge">`;
+      if (role === "admin") badgeHTML = `<img src="assets/badges/admin-badge.png" alt="ADMIN" class="badge">`;
 
-  const statusLabel = data.status === "dnd" ? " (DND)" : "";
+      userItem.innerHTML = `<div class="user-name">${data.username}${statusLabel}${badgeHTML}</div>`;
 
-  let badgeHTML = "";
-  if (roles[i].role === "developer") badgeHTML = `<img src="assets/badges/developer-badge.png" alt="DEV" class="badge">`;
-  if (roles[i].role === "admin") badgeHTML = `<img src="assets/badges/admin-badge.png" alt="ADMIN" class="badge">`;
+      // Buttons
+      const btns = document.createElement("div");
+      btns.classList.add("user-buttons");
 
-  userItem.innerHTML = `<div class="user-name">${data.username}${statusLabel}${badgeHTML}</div>`;
+      const blockBtn = document.createElement("button");
+      blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
+      blockBtn.className = "block-btn";
+      blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
 
-  const btns = document.createElement("div");
-  btns.classList.add("user-buttons");
+      const dmBtn = document.createElement("button");
+      dmBtn.textContent = "DM";
+      dmBtn.className = "dm-btn";
+      dmBtn.onclick = () => openDMModal(data.username);
 
-  const blockBtn = document.createElement("button");
-  blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
-  blockBtn.className = "block-btn";
-  blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
-  btns.appendChild(blockBtn);
+      btns.appendChild(blockBtn);
+      btns.appendChild(dmBtn);
+      userItem.appendChild(btns);
 
-  const dmBtn = document.createElement("button");
-  dmBtn.textContent = "DM";
-  dmBtn.className = "dm-btn";
-  dmBtn.onclick = () => openDMModal(data.username);
-  btns.appendChild(dmBtn);
+      usersDiv.appendChild(userItem);
+      onlineUsersMap.set(data.username, userItem);
+    }
 
-  // --- Admin Panel Buttons ---
-  if (currentUserRole === "admin" || currentUserRole === "developer") {
-    const deleteMsgBtn = document.createElement("button");
-    deleteMsgBtn.textContent = "Delete Msgs";
-    deleteMsgBtn.style.background = "#dc3545";
-    deleteMsgBtn.onclick = async () => {
-      if (!confirm(`Delete all messages from ${data.username}?`)) return;
-      const messagesRef = collection(db, "messages");
-      const q = query(messagesRef, orderBy("timestamp"));
-      const snapshot = await getDocs(q);
-      snapshot.forEach(docSnap => {
-        const msgData = docSnap.data();
-        if(msgData.username === data.username) deleteDoc(doc(db,"messages",docSnap.id));
-      });
-    };
-    btns.appendChild(deleteMsgBtn);
-
-    const kickBtn = document.createElement("button");
-    kickBtn.textContent = "Kick";
-    kickBtn.style.background = "#ff9900";
-    kickBtn.onclick = async () => {
-      await deleteDoc(doc(db,"onlineUsers",data.username));
-      alert(`${data.username} was kicked.`);
-    };
-    btns.appendChild(kickBtn);
-
-    const muteBtn = document.createElement("button");
-    muteBtn.textContent = "Mute";
-    muteBtn.style.background = "#5555ff";
-    muteBtn.onclick = async () => {
-      await setDoc(doc(db,"mutedUsers",data.username), { muted: true }, { merge: true });
-      alert(`${data.username} has been muted.`);
-    };
-    btns.appendChild(muteBtn);
-
-    const banBtn = document.createElement("button");
-    banBtn.textContent = "Ban";
-    banBtn.style.background = "#000";
-    banBtn.style.color = "white";
-    banBtn.onclick = async () => {
-      await setDoc(doc(db,"bannedUsers",data.username), { banned: true });
-      await deleteDoc(doc(db,"onlineUsers",data.username));
-      alert(`${data.username} has been banned.`);
-    };
-    btns.appendChild(banBtn);
-  }
-
-  userItem.appendChild(btns);
-  usersDiv.appendChild(userItem);
-  onlineUsersMap.set(data.username, userItem);
-    });
+    // Remove users that disappeared
+    for (const [uname, item] of onlineUsersMap.entries()) {
+      if (!seenUsers.has(uname)) {
+        item.remove();
+        onlineUsersMap.delete(uname);
+      }
+    }
   });
 }
 
@@ -681,6 +663,120 @@ async function hashKey(key) {
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
 }
+
+if(userRole === "admin" || userRole === "developer") {
+  document.getElementById("open-admin-panel").style.display = "block";
+}
+
+const adminBtn = document.getElementById("open-admin-panel");
+const adminPanel = document.getElementById("admin-panel-popup");
+const closeAdminPanel = document.getElementById("close-admin-panel");
+
+adminBtn.onclick = () => adminPanel.style.display = "block";
+closeAdminPanel.onclick = () => adminPanel.style.display = "none";
+
+dragElement(adminPanel);
+
+function dragElement(elm) {
+  const header = document.getElementById("admin-panel-header");
+  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+  header.onmousedown = dragMouseDown;
+
+  function dragMouseDown(e) {
+    e = e || window.event;
+    e.preventDefault();
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    document.onmouseup = closeDragElement;
+    document.onmousemove = elementDrag;
+  }
+
+  function elementDrag(e) {
+    e = e || window.event;
+    e.preventDefault();
+    pos1 = pos3 - e.clientX;
+    pos2 = pos4 - e.clientY;
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    elm.style.top = (elm.offsetTop - pos2) + "px";
+    elm.style.left = (elm.offsetLeft - pos1) + "px";
+  }
+
+  function closeDragElement() {
+    document.onmouseup = null;
+    document.onmousemove = null;
+  }
+}
+
+async function refreshAdminUsers() {
+  const onlineRef = collection(db, "onlineUsers");
+  onSnapshot(onlineRef, async snapshot => {
+    const usersList = document.getElementById("admin-users-list");
+    usersList.innerHTML = "";
+
+    const now = Date.now();
+    const usersToShow = snapshot.docs
+      .map(docSnap => docSnap.data())
+      .filter(data => data.username !== username && (data.lastSeen?.toMillis() || 0) + 10000 > now);
+
+    usersToShow.forEach(data => {
+      const userDiv = document.createElement("div");
+      userDiv.style.borderBottom = "1px solid #ccc";
+      userDiv.style.padding = "4px 0";
+
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = data.username;
+      userDiv.appendChild(nameSpan);
+
+      // Buttons container
+      const btns = document.createElement("div");
+      btns.style.marginTop = "4px";
+      btns.style.display = "flex";
+      btns.style.gap = "4px";
+
+      // Ban Button
+      const banBtn = document.createElement("button");
+      banBtn.textContent = "Ban";
+      banBtn.style.flex = "1";
+      banBtn.style.background = "#000";
+      banBtn.style.color = "white";
+      banBtn.onclick = async () => {
+        await setDoc(doc(db,"bannedUsers",data.username), { banned:true });
+        await deleteDoc(doc(db,"onlineUsers",data.username));
+        alert(`${data.username} has been banned`);
+      };
+      btns.appendChild(banBtn);
+
+      // Mute Button
+      const muteBtn = document.createElement("button");
+      muteBtn.textContent = "Mute";
+      muteBtn.style.flex = "1";
+      muteBtn.style.background = "#5555ff";
+      muteBtn.style.color = "white";
+      muteBtn.onclick = async () => {
+        await setDoc(doc(db,"mutedUsers",data.username), { muted:true });
+        alert(`${data.username} has been muted`);
+      };
+      btns.appendChild(muteBtn);
+
+      // Warn Button
+      const warnBtn = document.createElement("button");
+      warnBtn.textContent = "Warn";
+      warnBtn.style.flex = "1";
+      warnBtn.style.background = "#ff9900";
+      warnBtn.style.color = "white";
+      warnBtn.onclick = () => alert(`Warn sent to ${data.username}`);
+      btns.appendChild(warnBtn);
+
+      userDiv.appendChild(btns);
+      usersList.appendChild(userDiv);
+    });
+  });
+}
+
+// Call this after login for admins/devs
+if(userRole === "admin" || userRole === "developer") refreshAdminUsers();
 
 // Generate key
 generateKeySettingsBtn.onclick = async ()=>{
