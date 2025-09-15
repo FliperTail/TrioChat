@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v14.1</title>
+<title>TrioChat-demo v14.2</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -184,6 +184,10 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
   <button id="delete-account-btn" style="background:#dc3545;color:white;">Delete Account</button>
 </div>
 
+<div id="settings-overlay" 
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9998;">
+</div>
+
 <div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
 
 <script type="module">
@@ -229,7 +233,6 @@ const loginKeyBtn = document.getElementById("login-key-btn");
 
 const settingsBtn = document.getElementById("settings-btn");
 const settingsPopup = document.getElementById("settings-popup");
-const settingsOverlay = document.getElementById("settings-overlay");
 const generateKeySettingsBtn = document.getElementById("generate-key-btn-settings");
 const darkModeToggleBtn = document.getElementById("dark-mode-toggle");
 const logoutBtn = document.getElementById("logout-btn");
@@ -280,7 +283,38 @@ function updateOnlineUsers() {
         continue;
       }
 
-      // Add new user (same as before)...
+      // --- Add new user to sidebar ---
+      const userItem = document.createElement("div");
+      userItem.classList.add("user-item");
+
+      const userNameSpan = document.createElement("span");
+      userNameSpan.classList.add("user-name");
+      userNameSpan.textContent = data.username + (data.status === "dnd" ? " (DND)" : "");
+      userItem.appendChild(userNameSpan);
+
+      // --- Action buttons ---
+      const btns = document.createElement("div");
+      btns.classList.add("user-buttons");
+
+      // Ignore button
+      const blockBtn = document.createElement("button");
+      blockBtn.classList.add("block-btn");
+      blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
+      blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
+      btns.appendChild(blockBtn);
+
+      // DM button
+      const dmBtn = document.createElement("button");
+      dmBtn.classList.add("dm-btn");
+      dmBtn.textContent = "DM";
+      dmBtn.onclick = () => openDMModal(data.username);
+      btns.appendChild(dmBtn);
+
+      userItem.appendChild(btns);
+      usersDiv.appendChild(userItem);
+
+      // Track user
+      onlineUsersMap.set(data.username, userItem);
     }
 
     // Remove users that disappeared
@@ -578,22 +612,17 @@ document.getElementById("create-room-btn").addEventListener("click", async ()=>{
   }
 });
 
-window.addEventListener("DOMContentLoaded", () => {
-  const settingsBtn = document.getElementById("settings-btn");
-  const settingsPopup = document.getElementById("settings-popup");
-  const settingsOverlay = document.getElementById("settings-overlay");
-  const closeSettingsTopBtn = document.getElementById("close-settings-top");
+const settingsOverlay = document.getElementById("settings-overlay");
 
-  settingsBtn.onclick = ()=>{
-    settingsPopup.style.display="block";
-    settingsOverlay.style.display="block";
-  };
+settingsBtn.onclick = () => {
+  settingsPopup.style.display = "block";
+  settingsOverlay.style.display = "block";
+};
 
-  closeSettingsTopBtn.onclick = () => {
-    settingsPopup.style.display = "none";
-    settingsOverlay.style.display = "none";
-  };
-});
+closeSettingsTopBtn.onclick = () => {
+  settingsPopup.style.display = "none";
+  settingsOverlay.style.display = "none";
+};
 
 deleteAccountBtn.onclick = async () => {
   const confirmDelete = confirm("Are you sure you want to delete your account? This cannot be undone.");
