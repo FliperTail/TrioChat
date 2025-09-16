@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v14.4</title>
+<title>TrioChat-demo v14.5</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -262,7 +262,21 @@ let currentStatus = "online";
 let unsubscribeOnline = null;
 
 function updateOnlineUsers() {
-    onSnapshot(onlineRef, snapshot => {
+  if (onlineUsersInitialized) return;
+  onlineUsersInitialized = true;
+
+  const onlineRef = collection(db, "onlineUsers"); // <-- declare it here
+
+  // Keep presence updated
+  setInterval(() => {
+    setDoc(
+      doc(db, "onlineUsers", username),
+      { username, lastSeen: serverTimestamp(), status: currentStatus },
+      { merge: true }
+    );
+  }, 5000);
+
+  onSnapshot(onlineRef, snapshot => {
     usersDiv.innerHTML = ""; // clear list to avoid duplicates
     const now = Date.now();
     const seenUsers = new Set();
@@ -273,7 +287,7 @@ function updateOnlineUsers() {
 
       const lastSeen = data.lastSeen?.toMillis?.() || 0;
       if (now - lastSeen > 15000) return; // skip inactive
-      if (data.username === username) return; // skip self if you want
+      if (data.username === username) return; // skip self if desired
 
       seenUsers.add(data.username);
 
