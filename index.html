@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v14.7</title>
+<title>TrioChat-demo v14.8</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -298,14 +298,19 @@ function updateOnlineUsers() {
       // Username + badge
       const usernameSpan = document.createElement("span");
       usernameSpan.className = "user-name";
-      usernameSpan.textContent = data.username;
+      usernameSpan.textContent = data.username; // set username text first
+
       if (data.role) {
+        // Badge
         const badge = document.createElement("span");
         badge.className = "badge";
         badge.textContent = data.role;
+        
+        // Add a space before badge
         usernameSpan.appendChild(document.createTextNode(" "));
         usernameSpan.appendChild(badge);
       }
+
       userDiv.appendChild(usernameSpan);
 
       // Buttons
@@ -611,17 +616,43 @@ messageForm.addEventListener("submit", async (e) => {
   }
 });
 
-// --- Create room ---
-document.getElementById("create-room-btn").addEventListener("click", async ()=>{
-  const roomName=prompt("Enter new room name:");
-  if(!roomName) return;
-  const type=prompt("Type 'public' or 'private':").toLowerCase();
-  if(type!=="private" && type!=="public"){alert("Invalid type."); return;}
-  if(type==="private"){ const otherUser=prompt("Enter username to share with:"); if(!otherUser)return;
-    await setDoc(doc(db,"rooms",roomName),{private:true,allowedUsers:[username,otherUser]});
-  } else {
-    await setDoc(doc(db,"rooms",roomName),{private:false});
+// --- Create private room with multiple users ---
+document.getElementById("create-room-btn").addEventListener("click", async () => {
+  // Check if user already has a private room
+  const roomsRef = collection(db, "rooms");
+  const snapshot = await getDocs(roomsRef);
+  const hasPrivateRoom = snapshot.docs.some(docSnap => {
+    const data = docSnap.data();
+    return data.private && data.allowedUsers.includes(username);
+  });
+
+  if (hasPrivateRoom) {
+    alert("You can only create one private room.");
+    return;
   }
+
+  const roomName = prompt("Enter new private room name:");
+  if (!roomName) return;
+
+  const otherUsersInput = prompt("Enter usernames to share with, separated by commas:");
+  if (!otherUsersInput) return;
+
+  const otherUsers = otherUsersInput
+    .split(",")
+    .map(u => u.trim())
+    .filter(u => u && u !== username); // Remove empty or own username
+
+  if (otherUsers.length === 0) {
+    alert("You must enter at least one other user.");
+    return;
+  }
+
+  await setDoc(doc(db, "rooms", roomName), {
+    private: true,
+    allowedUsers: [username, ...otherUsers]
+  });
+
+  alert(`Private room "${roomName}" created with: ${otherUsers.join(", ")}`);
 });
 
 const settingsOverlay = document.getElementById("settings-overlay");
