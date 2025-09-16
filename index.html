@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v14.3</title>
+<title>TrioChat-demo v14.3.1</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -117,6 +117,20 @@ button.send-btn:disabled { background:#999; cursor:not-allowed; }
 .dm-form button:hover {
   background: #0062cc;
 }
+.user-buttons {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.user-buttons button {
+  flex: 1;
+  font-size: 11px;
+  padding: 3px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.block-btn { background:#dc3545; color:white; }
+.dm-btn { background:#28a745; color:white; }
 </style>
 </head>
 <body>
@@ -248,61 +262,69 @@ let currentStatus = "online";
 let unsubscribeOnline = null;
 
 function updateOnlineUsers() {
-  const usersDiv = document.getElementById("online-users");
-  const onlineRef = collection(db, "onlineUsers");
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+    if (!data || !data.username) return;
 
-  // Prevent multiple listeners (duplication issue fix)
-  if (unsubscribeOnline) unsubscribeOnline();
+    const lastSeen = data.lastSeen?.toMillis?.() || 0;
+    if (now - lastSeen > 15000) return; // skip inactive
 
-  unsubscribeOnline = onSnapshot(onlineRef, snapshot => {
-    const now = Date.now();
-    usersDiv.innerHTML = ""; // clear before rebuild
+    const userDiv = document.createElement("div");
+    userDiv.className = "user-entry";
 
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      if (!data || !data.username) return;
+    const usernameSpan = document.createElement("span");
+    usernameSpan.textContent = data.username;
 
-      const lastSeen = data.lastSeen?.toMillis?.() || 0;
-      if (now - lastSeen > 15000) return; // skip inactive
+    // Role badge
+    if (data.role) {
+      const badge = document.createElement("span");
+      badge.className = "role-badge";
+      badge.textContent = data.role;
+      usernameSpan.appendChild(document.createTextNode(" "));
+      usernameSpan.appendChild(badge);
+    }
 
-      // Create user entry
-      const userDiv = document.createElement("div");
-      userDiv.className = "user-entry";
+    userDiv.appendChild(usernameSpan);
 
-      // Username text
-      const usernameSpan = document.createElement("span");
-      usernameSpan.textContent = data.username;
+    // --- Action buttons ---
+    if (data.username !== username) { // skip buttons for self
+      const buttonsDiv = document.createElement("div");
+      buttonsDiv.className = "user-buttons";
 
-      // Role badge
-      if (data.role) {
-        const badge = document.createElement("span");
-        badge.className = "badge";
-        badge.textContent = data.role;
+      const dmBtn = document.createElement("button");
+      dmBtn.className = "dm-btn";
+      dmBtn.textContent = "DM";
+      dmBtn.onclick = () => openDMModal(data.username);
 
-        // Color coding (optional)
-        if (data.role.toLowerCase() === "developer") badge.style.color = "pink";
-        if (data.role.toLowerCase() === "admin") badge.style.color = "red";
-        if (data.role.toLowerCase() === "moderator") badge.style.color = "blue";
+      const blockBtn = document.createElement("button");
+      blockBtn.className = "block-btn";
+      blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
+      blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
 
-        usernameSpan.appendChild(document.createTextNode(" ")); // spacing
-        usernameSpan.appendChild(badge);
+      // Optional: Admin buttons
+      if (currentUserRole === "Admin") {
+        const muteBtn = document.createElement("button");
+        muteBtn.textContent = "Mute";
+        muteBtn.onclick = async () => {
+          await setDoc(doc(db,"mutedUsers",data.username), { muted:true }, { merge:true });
+          alert(`${data.username} has been muted.`);
+        };
+        const banBtn = document.createElement("button");
+        banBtn.textContent = "Ban";
+        banBtn.onclick = async () => {
+          await setDoc(doc(db,"bannedUsers",data.username), { banned:true }, { merge:true });
+          alert(`${data.username} has been banned.`);
+        };
+        buttonsDiv.append(dmBtn, blockBtn, muteBtn, banBtn);
+      } else {
+        buttonsDiv.append(dmBtn, blockBtn);
       }
 
-      userDiv.appendChild(usernameSpan);
-      usersDiv.appendChild(userDiv);
-    });
-  });
+      userDiv.appendChild(buttonsDiv);
+    }
 
-  // Heartbeat updater (keeps current user online)
-  setInterval(() => {
-    if (!username) return;
-    setDoc(doc(db, "onlineUsers", username), {
-      username,
-      lastSeen: serverTimestamp(),
-      role: userRole || "User",  // make sure role is stored
-      status: currentStatus || "online"
-    }, { merge: true });
-  }, 5000);
+    usersDiv.appendChild(userDiv);
+  });
 }
 
 // --- Block/unblock ---
