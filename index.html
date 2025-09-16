@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>TrioChat-demo v14.2</title>
+<title>TrioChat-demo v14.3</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
 body.dark-theme { background:#1e1e1e; color:white; }
@@ -245,86 +245,64 @@ const onlineUsersMap = new Map();
 let unsubscribeRooms = null;
 let currentStatus = "online";
 
-let onlineUsersInitialized = false;
+let unsubscribeOnline = null;
 
 function updateOnlineUsers() {
-  if (onlineUsersInitialized) return;
-  onlineUsersInitialized = true;
-
+  const usersDiv = document.getElementById("online-users");
   const onlineRef = collection(db, "onlineUsers");
 
-  // Keep presence updated
-  setInterval(() => {
-    setDoc(
-      doc(db, "onlineUsers", username),
-      { username, lastSeen: serverTimestamp(), status: currentStatus },
-      { merge: true }
-    );
-  }, 5000);
+  // Prevent multiple listeners (duplication issue fix)
+  if (unsubscribeOnline) unsubscribeOnline();
 
-  onSnapshot(onlineRef, async snapshot => {
+  unsubscribeOnline = onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
-    const seenUsers = new Set();
+    usersDiv.innerHTML = ""; // clear before rebuild
 
-    for (const docSnap of snapshot.docs) {
+    snapshot.forEach(docSnap => {
       const data = docSnap.data();
-      const lastSeen = data.lastSeen?.toMillis() || 0;
+      if (!data || !data.username) return;
 
-      if (lastSeen + 10000 <= now || data.username === username) continue;
+      const lastSeen = data.lastSeen?.toMillis?.() || 0;
+      if (now - lastSeen > 15000) return; // skip inactive
 
-      seenUsers.add(data.username);
+      // Create user entry
+      const userDiv = document.createElement("div");
+      userDiv.className = "user-entry";
 
-      // Update existing or add new
-      if (onlineUsersMap.has(data.username)) {
-        const userItem = onlineUsersMap.get(data.username);
-        const statusLabel = data.status === "dnd" ? " (DND)" : "";
-        userItem.querySelector(".user-name").innerHTML =
-          `${data.username}${statusLabel}${userItem.querySelector("img") ? userItem.querySelector("img").outerHTML : ""}`;
-        continue;
+      // Username text
+      const usernameSpan = document.createElement("span");
+      usernameSpan.textContent = data.username;
+
+      // Role badge
+      if (data.role) {
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = data.role;
+
+        // Color coding (optional)
+        if (data.role.toLowerCase() === "developer") badge.style.color = "pink";
+        if (data.role.toLowerCase() === "admin") badge.style.color = "red";
+        if (data.role.toLowerCase() === "moderator") badge.style.color = "blue";
+
+        usernameSpan.appendChild(document.createTextNode(" ")); // spacing
+        usernameSpan.appendChild(badge);
       }
 
-      // --- Add new user to sidebar ---
-      const userItem = document.createElement("div");
-      userItem.classList.add("user-item");
-
-      const userNameSpan = document.createElement("span");
-      userNameSpan.classList.add("user-name");
-      userNameSpan.textContent = data.username + (data.status === "dnd" ? " (DND)" : "");
-      userItem.appendChild(userNameSpan);
-
-      // --- Action buttons ---
-      const btns = document.createElement("div");
-      btns.classList.add("user-buttons");
-
-      // Ignore button
-      const blockBtn = document.createElement("button");
-      blockBtn.classList.add("block-btn");
-      blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
-      blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
-      btns.appendChild(blockBtn);
-
-      // DM button
-      const dmBtn = document.createElement("button");
-      dmBtn.classList.add("dm-btn");
-      dmBtn.textContent = "DM";
-      dmBtn.onclick = () => openDMModal(data.username);
-      btns.appendChild(dmBtn);
-
-      userItem.appendChild(btns);
-      usersDiv.appendChild(userItem);
-
-      // Track user
-      onlineUsersMap.set(data.username, userItem);
-    }
-
-    // Remove users that disappeared
-    for (const [uname, item] of onlineUsersMap.entries()) {
-      if (!seenUsers.has(uname)) {
-        item.remove();
-        onlineUsersMap.delete(uname);
-      }
-    }
+      userDiv.appendChild(usernameSpan);
+      usersDiv.appendChild(userDiv);
+    });
   });
+
+  // Heartbeat updater (keeps current user online)
+  setInterval(() => {
+    if (!username) return;
+    setDoc(doc(db, "onlineUsers", username), {
+      username,
+      lastSeen: serverTimestamp(),
+      role: userRole || "User",  // make sure role is stored
+      status: currentStatus || "online"
+    }, { merge: true });
+  }, 5000);
 }
 
 // --- Block/unblock ---
