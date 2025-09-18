@@ -1,731 +1,729 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>TrioChat-demo v14.8</title>
-<style>
-body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
-body.dark-theme { background:#1e1e1e; color:white; }
-#username-page, #chat-page { display:none; width:100%; max-width:700px; flex-direction:column; align-items:center; }
-#username-page input { padding:10px; font-size:16px; }
-#username-page button { margin:5px; padding:10px 20px; font-size:16px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
-#error { color:red; margin-top:10px; text-align:center; }
-h2 { text-align:center; background:#007bff; color:white; padding:10px 20px; margin:10px 0; border-radius:5px; display:inline-block; }
-#room-select { text-align:center; margin:10px 0; }
-#room-select button { margin:0 5px; padding:5px 10px; cursor:pointer; border:none; border-radius:5px; background:#ccc; color:black; }
-#room-select button.active { background:#007bff; color:white; }
-.chat-container { display:flex; width:100%; height:500px; background:#fff; border:1px solid #ccc; border-radius:5px; overflow:hidden; transition: background 0.3s, color 0.3s; }
-.dark-theme .chat-container { background:#2c2c2c; color:white; border-color:#555; }
-#user-list { width:200px; border-right:1px solid #ccc; background:#f9f9f9; padding:10px; overflow-y:auto; display:flex; flex-direction:column; transition: background 0.3s; }
-.dark-theme #user-list { background:#333; border-color:#555; }
-#user-list h4 { margin-top:0; }
-#users { flex:1; }
-#status-box { border-top:1px solid #ccc; padding:8px; background:#eee; text-align:center; transition: background 0.3s; }
-.dark-theme #status-box { background:#444; border-color:#555; }
-#status-box h5 { margin:4px 0; }
-#status-buttons button { margin:3px; padding:5px 10px; border:none; border-radius:5px; cursor:pointer; }
-.online-btn { background:#28a745; color:white; }
-.dnd-btn { background:#dc3545; color:white; }
-#chat-area { flex:1; display:flex; flex-direction:column; }
-#chat-box { flex:1; padding:10px; overflow-y:auto; background:#f9f9f9; transition: background 0.3s, color 0.3s; }
-.dark-theme #chat-box { background:#222; color:white; }
-.msg { margin:5px 0; padding:8px 12px; background:#e1f5fe; border-radius:5px; transition: background 0.3s, color 0.3s; }
-.dark-theme .msg { background:#444; color:white; }
-#message-form { display:flex; padding:10px; border-top:1px solid #ccc; background:#eee; transition: background 0.3s; }
-.dark-theme #message-form { background:#444; border-color:#555; }
-#message-input { flex:1; padding:10px; border:1px solid #ccc; border-radius:5px; }
-button.send-btn { margin-left:10px; padding:10px 20px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
-button.send-btn:disabled { background:#999; cursor:not-allowed; }
-.user-item { padding:4px 6px; border-bottom:1px solid #ddd; transition: background 0.3s, color 0.3s; }
-.dark-theme .user-item { border-color:#555; }
-.user-name { font-weight:bold; }
-.user-buttons { margin-top:4px; display:flex; gap:4px; }
-.user-buttons button { flex:1; font-size:11px; padding:3px; border:none; border-radius:3px; cursor:pointer; }
-.block-btn { background:#dc3545; color:white; }
-.dm-btn { background:#28a745; color:white; }
-#settings-popup { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:5px; box-shadow:0 2px 10px rgba(0,0,0,0.3); z-index:10000; width:250px; }
-.dark-theme #settings-popup { background:#333; color:white; }
-#settings-popup h3 { margin-top:0; text-align:center; }
-#settings-popup button { margin:5px 0; width:100%; padding:8px; cursor:pointer; border:none; border-radius:5px; }
-#settings-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; }
-.badge { width: 24px; height: 24px; vertical-align: middle; margin-left: 4px; }
-.dm-window {
-  width: 250px;
-  height: 300px;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  overflow: hidden;
-}
-.dark-theme .dm-window {
-  background: #2c2c2c;
-  border-color: #555;
-  color: white;
-}
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <title>TrioChat-demo v14.9</title>
+  <style>
+  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
+  body.dark-theme { background:#1e1e1e; color:white; }
+  #username-page, #chat-page { display:none; width:100%; max-width:700px; flex-direction:column; align-items:center; }
+  #username-page input { padding:10px; font-size:16px; }
+  #username-page button { margin:5px; padding:10px 20px; font-size:16px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
+  #error { color:red; margin-top:10px; text-align:center; }
+  h2 { text-align:center; background:#007bff; color:white; padding:10px 20px; margin:10px 0; border-radius:5px; display:inline-block; }
+  #room-select { text-align:center; margin:10px 0; }
+  #room-select button { margin:0 5px; padding:5px 10px; cursor:pointer; border:none; border-radius:5px; background:#ccc; color:black; }
+  #room-select button.active { background:#007bff; color:white; }
+  .chat-container { display:flex; width:100%; height:500px; background:#fff; border:1px solid #ccc; border-radius:5px; overflow:hidden; transition: background 0.3s, color 0.3s; }
+  .dark-theme .chat-container { background:#2c2c2c; color:white; border-color:#555; }
+  #user-list { width:200px; border-right:1px solid #ccc; background:#f9f9f9; padding:10px; overflow-y:auto; display:flex; flex-direction:column; transition: background 0.3s; }
+  .dark-theme #user-list { background:#333; border-color:#555; }
+  #user-list h4 { margin-top:0; }
+  #users { flex:1; }
+  #status-box { border-top:1px solid #ccc; padding:8px; background:#eee; text-align:center; transition: background 0.3s; }
+  .dark-theme #status-box { background:#444; border-color:#555; }
+  #status-box h5 { margin:4px 0; }
+  #status-buttons button { margin:3px; padding:5px 10px; border:none; border-radius:5px; cursor:pointer; }
+  .online-btn { background:#28a745; color:white; }
+  .dnd-btn { background:#dc3545; color:white; }
+  #chat-area { flex:1; display:flex; flex-direction:column; }
+  #chat-box { flex:1; padding:10px; overflow-y:auto; background:#f9f9f9; transition: background 0.3s, color 0.3s; }
+  .dark-theme #chat-box { background:#222; color:white; }
+  .msg { margin:5px 0; padding:8px 12px; background:#e1f5fe; border-radius:5px; transition: background 0.3s, color 0.3s; }
+  .dark-theme .msg { background:#444; color:white; }
+  #message-form { display:flex; padding:10px; border-top:1px solid #ccc; background:#eee; transition: background 0.3s; }
+  .dark-theme #message-form { background:#444; border-color:#555; }
+  #message-input { flex:1; padding:10px; border:1px solid #ccc; border-radius:5px; }
+  button.send-btn { margin-left:10px; padding:10px 20px; border:none; background:#007bff; color:white; border-radius:5px; cursor:pointer; }
+  button.send-btn:disabled { background:#999; cursor:not-allowed; }
+  .user-item { padding:4px 6px; border-bottom:1px solid #ddd; transition: background 0.3s, color 0.3s; }
+  .dark-theme .user-item { border-color:#555; }
+  .user-name { font-weight:bold; }
+  .user-buttons { margin-top:4px; display:flex; gap:4px; }
+  .user-buttons button { flex:1; font-size:11px; padding:3px; border:none; border-radius:3px; cursor:pointer; }
+  .block-btn { background:#dc3545; color:white; }
+  .dm-btn { background:#28a745; color:white; }
+  #settings-popup { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:5px; box-shadow:0 2px 10px rgba(0,0,0,0.3); z-index:10000; width:250px; }
+  .dark-theme #settings-popup { background:#333; color:white; }
+  #settings-popup h3 { margin-top:0; text-align:center; }
+  #settings-popup button { margin:5px 0; width:100%; padding:8px; cursor:pointer; border:none; border-radius:5px; }
+  #settings-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; }
+  .badge { width: 24px; height: 24px; vertical-align: middle; margin-left: 4px; }
+  .dm-window {
+    width: 250px;
+    height: 300px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    overflow: hidden;
+  }
+  .dark-theme .dm-window {
+    background: #2c2c2c;
+    border-color: #555;
+    color: white;
+  }
 
-.dm-header {
-  background: #007bff;
-  color: #fff;
-  padding: 5px;
-  font-weight: bold;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+  .dm-header {
+    background: #007bff;
+    color: #fff;
+    padding: 5px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-.dm-chat {
-  flex: 1;
-  padding: 5px;
-  overflow-y: auto;
-  background: #f9f9f9;
-}
-.dark-theme .dm-chat {
-  background: #222;
-  color: white;
-}
+  .dm-chat {
+    flex: 1;
+    padding: 5px;
+    overflow-y: auto;
+    background: #f9f9f9;
+  }
+  .dark-theme .dm-chat {
+    background: #222;
+    color: white;
+  }
 
-.dm-form {
-  display: flex;
-  border-top: 1px solid #ccc;
-}
-.dark-theme .dm-form {
-  border-color: #555;
-}
-.dm-form input {
-  flex: 1;
-  padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 0;
-  outline: none;
-}
-.dark-theme .dm-form input {
-  background: #333;
-  border-color: #555;
-  color: white;
-}
-.dm-form button {
-  padding: 2px 4px;
-  border: none;
-  background: #007bff;
-  color: white;
-  cursor: pointer;
-}
-.dm-form button:hover {
-  background: #0062cc;
-}
-.user-buttons {
-  display: flex;
-  gap: 4px;
-  margin-top: 4px;
-}
-.user-buttons button {
-  flex: 1;
-  font-size: 11px;
-  padding: 3px;
-  border-radius: 3px;
-  cursor: pointer;
-}
-.block-btn { background:#dc3545; color:white; }
-.dm-btn { background:#28a745; color:white; }
-</style>
-</head>
-<body>
+  .dm-form {
+    display: flex;
+    border-top: 1px solid #ccc;
+  }
+  .dark-theme .dm-form {
+    border-color: #555;
+  }
+  .dm-form input {
+    flex: 1;
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 0;
+    outline: none;
+  }
+  .dark-theme .dm-form input {
+    background: #333;
+    border-color: #555;
+    color: white;
+  }
+  .dm-form button {
+    padding: 2px 4px;
+    border: none;
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+  }
+  .dm-form button:hover {
+    background: #0062cc;
+  }
+  .user-buttons {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .user-buttons button {
+    flex: 1;
+    font-size: 11px;
+    padding: 3px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .block-btn { background:#dc3545; color:white; }
+  .dm-btn { background:#28a745; color:white; }
+  </style>
+  </head>
+  <body>
 
-<div id="username-page">
-  <h2>Welcome to TrioChat!</h2>
-  <input type="text" id="username-input" placeholder="Username" />
-  <div style="margin-top:10px;">
-    <button id="register-btn">Register</button>
-    <button id="login-key-btn">Login with Key</button>
-  </div>
-  <div id="error"></div>
-</div>
-
-<div id="chat-page">
-  <h2>TrioChat</h2>
-  <div id="room-select">
-    <button class="room-btn" data-room="Room 1">Room 1</button>
-    <button class="room-btn" data-room="Room 2">Room 2</button>
-    <button class="room-btn" data-room="Room 3">Room 3</button>
-    <button id="create-room-btn" style="background:#28a745;color:white;">+ Create Room</button>
-    <button id="settings-btn" style="background:#6c757d;color:white;">Settings</button>
+  <div id="username-page">
+    <h2>Welcome to TrioChat!</h2>
+    <input type="text" id="username-input" placeholder="Username" />
+    <div style="margin-top:10px;">
+      <button id="register-btn">Register</button>
+      <button id="login-key-btn">Login with Key</button>
+    </div>
+    <div id="error"></div>
   </div>
 
-  <div class="chat-container">
-    <div id="user-list">
-      <h4>Online Users</h4>
-      <div id="users"></div>
-      <div id="status-box">
-        <h5 id="status-username"></h5>
-        <div id="status-buttons">
-          <button class="online-btn">Online</button>
-          <button class="dnd-btn">Do Not Disturb</button>
+  <div id="chat-page">
+    <h2>TrioChat</h2>
+    <div id="room-select">
+      <button class="room-btn" data-room="Room 1">Room 1</button>
+      <button class="room-btn" data-room="Room 2">Room 2</button>
+      <button class="room-btn" data-room="Room 3">Room 3</button>
+      <button id="create-room-btn" style="background:#28a745;color:white;">+ Create Room</button>
+      <button id="settings-btn" style="background:#6c757d;color:white;">Settings</button>
+    </div>
+
+    <div class="chat-container">
+      <div id="user-list">
+        <h4>Online Users</h4>
+        <div id="users"></div>
+        <div id="status-box">
+          <h5 id="status-username"></h5>
+          <div id="status-buttons">
+            <button class="online-btn">Online</button>
+            <button class="dnd-btn">Do Not Disturb</button>
+          </div>
         </div>
       </div>
-    </div>
-    <div id="chat-area">
-      <div id="chat-box"></div>
-      <form id="message-form">
-        <input type="text" id="message-input" placeholder="Type a message!.." required />
-        <button class="send-btn" type="submit">Send</button>
-      </form>
+      <div id="chat-area">
+        <div id="chat-box"></div>
+        <form id="message-form">
+          <input type="text" id="message-input" placeholder="Type a message!.." required />
+          <button class="send-btn" type="submit">Send</button>
+        </form>
+      </div>
     </div>
   </div>
-</div>
 
-<div id="settings-popup">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-    <h3 style="margin:0; flex:1; text-align:center;">Settings</h3>
-    <button id="close-settings-top" style="
-      background:#dc3545;
-      color:white;
-      border:none;
-      border-radius:5px;
-      width:30px;
-      height:30px;
-      font-size:18px;
-      cursor:pointer;
-      margin-left:10px;
-    ">X</button>
+  <div id="settings-popup">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0; flex:1; text-align:center;">Settings</h3>
+      <button id="close-settings-top" style="
+        background:#dc3545;
+        color:white;
+        border:none;
+        border-radius:5px;
+        width:30px;
+        height:30px;
+        font-size:18px;
+        cursor:pointer;
+        margin-left:10px;
+      ">X</button>
+    </div>
+    <button id="generate-key-btn-settings">Generate Login Key</button>
+    <button id="dark-mode-toggle">Toggle Dark Mode</button>
+    <button id="logout-btn">Logout</button>
+    <button id="delete-account-btn" style="background:#dc3545;color:white;">Delete Account</button>
   </div>
-  <button id="generate-key-btn-settings">Generate Login Key</button>
-  <button id="dark-mode-toggle">Toggle Dark Mode</button>
-  <button id="logout-btn">Logout</button>
-  <button id="delete-account-btn" style="background:#dc3545;color:white;">Delete Account</button>
-</div>
 
-<div id="settings-overlay" 
-     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9998;">
-</div>
+  <div id="settings-overlay" 
+      style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9998;">
+  </div>
 
-<div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
+  <div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
 
-<script type="module">
-let cachedMessages = [];
-let unsubscribeMessages = null;
+  <script type="module">
+  let cachedMessages = [];
+  let unsubscribeMessages = null;
 
-// Apply saved dark mode
-if (localStorage.getItem("darkMode") === "true") {
-  document.body.classList.add("dark-theme");
-}
+  // Apply saved dark mode
+  if (localStorage.getItem("darkMode") === "true") {
+    document.body.classList.add("dark-theme");
+  }
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+  import { getFirestore, collection, doc, getDoc, setDoc, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCH3EXgZ9FN_t_tEW10uR5YmHiX_pabzew",
-  authDomain: "triochat-cbd25.firebaseapp.com",
-  projectId: "triochat-cbd25",
-  storageBucket: "triochat-cbd25.appspot.com",
-  messagingSenderId: "240591787712",
-  appId: "1:240591787712:web:7486c19c654a173eb4bf25",
-  measurementId: "G-TFXZ6HSSHN"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyCH3EXgZ9FN_t_tEW10uR5YmHiX_pabzew",
+    authDomain: "triochat-cbd25.firebaseapp.com",
+    projectId: "triochat-cbd25",
+    storageBucket: "triochat-cbd25.appspot.com",
+    messagingSenderId: "240591787712",
+    appId: "1:240591787712:web:7486c19c654a173eb4bf25",
+    measurementId: "G-TFXZ6HSSHN"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-// DOM
-const usernamePage = document.getElementById("username-page");
-const chatPage = document.getElementById("chat-page");
-const usernameInput = document.getElementById("username-input");
-const errorDiv = document.getElementById("error");
-const chatBox = document.getElementById('chat-box');
-const messageForm = document.getElementById('message-form');
-const messageInput = document.getElementById('message-input');
-const sendButton = document.querySelector(".send-btn");
-const roomButtonsContainer = document.getElementById("room-select");
-let roomButtons = document.querySelectorAll(".room-btn");
-const usersDiv = document.getElementById("users");
-const statusUsername = document.getElementById("status-username");
-const closeSettingsTopBtn = document.getElementById("close-settings-top");
+  // DOM
+  const usernamePage = document.getElementById("username-page");
+  const chatPage = document.getElementById("chat-page");
+  const usernameInput = document.getElementById("username-input");
+  const errorDiv = document.getElementById("error");
+  const chatBox = document.getElementById('chat-box');
+  const messageForm = document.getElementById('message-form');
+  const messageInput = document.getElementById('message-input');
+  const sendButton = document.querySelector(".send-btn");
+  const roomButtonsContainer = document.getElementById("room-select");
+  let roomButtons = document.querySelectorAll(".room-btn");
+  const usersDiv = document.getElementById("users");
+  const statusUsername = document.getElementById("status-username");
+  const closeSettingsTopBtn = document.getElementById("close-settings-top");
 
-const registerBtn = document.getElementById("register-btn");
-const loginKeyBtn = document.getElementById("login-key-btn");
+  const registerBtn = document.getElementById("register-btn");
+  const loginKeyBtn = document.getElementById("login-key-btn");
 
-const settingsBtn = document.getElementById("settings-btn");
-const settingsPopup = document.getElementById("settings-popup");
-const generateKeySettingsBtn = document.getElementById("generate-key-btn-settings");
-const darkModeToggleBtn = document.getElementById("dark-mode-toggle");
-const logoutBtn = document.getElementById("logout-btn");
-const deleteAccountBtn = document.getElementById("delete-account-btn");
+  const settingsBtn = document.getElementById("settings-btn");
+  const settingsPopup = document.getElementById("settings-popup");
+  const generateKeySettingsBtn = document.getElementById("generate-key-btn-settings");
+  const darkModeToggleBtn = document.getElementById("dark-mode-toggle");
+  const logoutBtn = document.getElementById("logout-btn");
+  const deleteAccountBtn = document.getElementById("delete-account-btn");
 
-let username = "";
-let currentRoom = "Room 1";
-let blockedUsers = JSON.parse(localStorage.getItem("blockedUsers") || "[]");
-const onlineUsersMap = new Map();
-let unsubscribeRooms = null;
-let currentStatus = "online";
-let onlineUsersInitialized = false;
+  let username = "";
+  let currentRoom = "Room 1";
+  let blockedUsers = JSON.parse(localStorage.getItem("blockedUsers") || "[]");
+  const onlineUsersMap = new Map();
+  let unsubscribeRooms = null;
+  let currentStatus = "online";
+  let onlineUsersInitialized = false;
 
-function updateOnlineUsers() {
-  if (onlineUsersInitialized) return;
-  onlineUsersInitialized = true;
+  function updateOnlineUsers() {
+    if (onlineUsersInitialized) return;
+    onlineUsersInitialized = true;
 
-  const onlineRef = collection(db, "onlineUsers");
+    const onlineRef = collection(db, "onlineUsers");
 
-  // Keep presence updated
-  setInterval(() => {
-    setDoc(
-      doc(db, "onlineUsers", username),
-      { username, lastSeen: serverTimestamp(), status: currentStatus },
-      { merge: true }
-    );
-  }, 5000);
+    // Keep presence updated
+    setInterval(() => {
+      setDoc(
+        doc(db, "onlineUsers", username),
+        { username, lastSeen: serverTimestamp(), status: currentStatus },
+        { merge: true }
+      );
+    }, 5000);
 
-  onSnapshot(onlineRef, snapshot => {
-    usersDiv.innerHTML = ""; // clear list to avoid duplicates
-    const now = Date.now();
-    const seenUsers = new Set();
+    onSnapshot(onlineRef, snapshot => {
+      usersDiv.innerHTML = ""; // clear list to avoid duplicates
+      const now = Date.now();
+      const seenUsers = new Set();
 
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      if (!data || !data.username) return;
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (!data || !data.username) return;
 
-      const lastSeen = data.lastSeen?.toMillis?.() || 0;
-      if (now - lastSeen > 15000) return; // skip inactive
-      if (data.username === username) return; // skip self if desired
+        const lastSeen = data.lastSeen?.toMillis?.() || 0;
+        if (now - lastSeen > 15000) return; // skip inactive
+        if (data.username === username) return; // skip self if desired
 
-      seenUsers.add(data.username);
+        seenUsers.add(data.username);
 
-      // Create user container
-      const userDiv = document.createElement("div");
-      userDiv.className = "user-entry";
+        // Create user container
+        const userDiv = document.createElement("div");
+        userDiv.className = "user-entry";
 
-      // Username + badge
-      const usernameSpan = document.createElement("span");
-      usernameSpan.className = "user-name";
-      usernameSpan.textContent = data.username; // set username text first
+        // Username + badge
+        const usernameSpan = document.createElement("span");
+        usernameSpan.className = "user-name";
+        usernameSpan.textContent = data.username; // set username text first
 
-      if (data.role) {
-        // Badge
-        const badge = document.createElement("span");
-        badge.className = "badge";
-        badge.textContent = data.role;
-        
-        // Add a space before badge
-        usernameSpan.appendChild(document.createTextNode(" "));
-        usernameSpan.appendChild(badge);
+        if (data.role) {
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.textContent = data.role;
+          usernameSpan.appendChild(document.createTextNode(" "));
+          usernameSpan.appendChild(badge);
+        }
+
+        userDiv.appendChild(usernameSpan);
+
+        // Buttons
+        const buttonsDiv = document.createElement("div");
+        buttonsDiv.className = "user-buttons";
+
+        const dmBtn = document.createElement("button");
+        dmBtn.className = "dm-btn";
+        dmBtn.textContent = "DM";
+        dmBtn.onclick = () => openDMModal(data.username);
+
+        const blockBtn = document.createElement("button");
+        blockBtn.className = "block-btn";
+        blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
+        blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
+
+        buttonsDiv.append(dmBtn, blockBtn);
+        userDiv.appendChild(buttonsDiv);
+
+        usersDiv.appendChild(userDiv);
+        onlineUsersMap.set(data.username, userDiv);
+      });
+
+      // Remove users that disappeared
+      for (const [uname, item] of onlineUsersMap.entries()) {
+        if (!seenUsers.has(uname)) {
+          item.remove();
+          onlineUsersMap.delete(uname);
+        }
       }
+    });
+  }
 
-      userDiv.appendChild(usernameSpan);
+  // --- Block/unblock ---
+  function toggleBlock(name, btn) {
+    if (blockedUsers.includes(name)) {
+      blockedUsers = blockedUsers.filter(n=>n!==name);
+      btn.textContent = "Ignore";
+    } else {
+      blockedUsers.push(name);
+      btn.textContent = "Unignore";
+    }
+    localStorage.setItem("blockedUsers", JSON.stringify(blockedUsers));
+    refreshMessages();
+  }
 
-      // Buttons
-      const buttonsDiv = document.createElement("div");
-      buttonsDiv.className = "user-buttons";
+  // --- DM handling ---
+  const dmContainer = document.getElementById("dm-container");
+  const dmWindows = new Map();
+  function openDMModal(otherUser) {
+    if (blockedUsers.includes(otherUser)) {
+      alert("You have ignored this user. You cannot DM them.");
+      return;
+    }
+    if (dmWindows.has(otherUser)) return;
 
-      const dmBtn = document.createElement("button");
-      dmBtn.className = "dm-btn";
-      dmBtn.textContent = "DM";
-      dmBtn.onclick = () => openDMModal(data.username);
+    const dmWindow = document.createElement("div");
+    dmWindow.classList.add("dm-window");
 
-      const blockBtn = document.createElement("button");
-      blockBtn.className = "block-btn";
-      blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
-      blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
+    const header = document.createElement("div");
+    header.classList.add("dm-header");
+    header.textContent = otherUser;
 
-      buttonsDiv.append(dmBtn, blockBtn);
-      userDiv.appendChild(buttonsDiv);
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "×";
+    closeBtn.style.background = "transparent";
+    closeBtn.style.border = "none";
+    closeBtn.style.color = "white";
+    closeBtn.style.fontSize = "16px";
+    closeBtn.style.cursor = "pointer";
+    closeBtn.onclick = () => {
+      unsubscribeDM();
+      dmWindow.remove();
+      dmWindows.delete(otherUser);
+    };
+    header.appendChild(closeBtn);
+    dmWindow.appendChild(header);
 
-      usersDiv.appendChild(userDiv);
-      onlineUsersMap.set(data.username, userDiv);
+    const chatBox = document.createElement("div");
+    chatBox.classList.add("dm-chat");
+    dmWindow.appendChild(chatBox);
+
+    const form = document.createElement("form");
+    form.classList.add("dm-form");
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Type a message..";
+    const sendBtn = document.createElement("button");
+    sendBtn.textContent = "Send";
+    sendBtn.type = "submit";
+    form.appendChild(input);
+    form.appendChild(sendBtn);
+    dmWindow.appendChild(form);
+
+    dmContainer.appendChild(dmWindow);
+    dmWindows.set(otherUser, dmWindow);
+
+    const roomName = [username, otherUser].sort().join("_DM_");
+    let unsubscribeDM = null;
+
+    const messagesRef = collection(db, "messages");
+    const q = query(messagesRef, orderBy("timestamp"));
+    unsubscribeDM = onSnapshot(q, snapshot => {
+      chatBox.innerHTML = "";
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.room !== roomName) return;
+        if (blockedUsers.includes(data.username)) return;
+        const msg = document.createElement("div");
+        msg.textContent = `${data.username}: ${data.text}`;
+        msg.style.margin = "2px 0";
+        chatBox.appendChild(msg);
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
     });
 
-    // Remove users that disappeared
-    for (const [uname, item] of onlineUsersMap.entries()) {
-      if (!seenUsers.has(uname)) {
-        item.remove();
-        onlineUsersMap.delete(uname);
-      }
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      if (blockedUsers.includes(otherUser)) { alert("You have ignored this user. Cannot send DM."); return; }
+      await addDoc(collection(db,"messages"), { username, text, room: roomName, timestamp: serverTimestamp() });
+    });
+  }
+
+  // --- Status controls ---
+  function setStatus(newStatus) {
+    currentStatus = newStatus;
+        const role = localStorage.getItem("userRole") || "User";
+      setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp(), status: currentStatus, role }, { merge: true });
+  }
+  document.querySelector(".online-btn").onclick = ()=> setStatus("online");
+  document.querySelector(".dnd-btn").onclick = ()=> setStatus("dnd");
+
+  // --- Username/Login ---
+  usernamePage.style.display="flex";
+  const savedUsername = localStorage.getItem("triochat_username");
+  if (savedUsername) checkLogin(savedUsername);
+
+  registerBtn.addEventListener("click", async ()=>{
+    const name = usernameInput.value.trim();
+    if(!name) return;
+    const usernameDoc = doc(db,"usernames",name);
+    const docSnap = await getDoc(usernameDoc);
+    if(docSnap.exists()){ errorDiv.textContent="Username is already taken."; } 
+    else {
+      await setDoc(usernameDoc,{created:serverTimestamp()});
+      localStorage.setItem("triochat_username",name);
+      checkLogin(name);
     }
   });
-}
 
-// --- Block/unblock ---
-function toggleBlock(name, btn) {
-  if (blockedUsers.includes(name)) {
-    blockedUsers = blockedUsers.filter(n=>n!==name);
-    btn.textContent = "Ignore";
-  } else {
-    blockedUsers.push(name);
-    btn.textContent = "Unignore";
-  }
-  localStorage.setItem("blockedUsers", JSON.stringify(blockedUsers));
-  refreshMessages();
-}
+  loginKeyBtn.addEventListener("click", async ()=>{
+    const name = usernameInput.value.trim();
+    if(!name){ alert("Enter a username first!"); return; }
 
-// --- DM handling ---
-const dmContainer = document.getElementById("dm-container");
-const dmWindows = new Map();
-function openDMModal(otherUser) {
-  if (blockedUsers.includes(otherUser)) {
-    alert("You have ignored this user. You cannot DM them.");
-    return;
-  }
-  if (dmWindows.has(otherUser)) return;
+    const keyInput = prompt("Enter your login key:");
+    if(!keyInput) return;
 
-  const dmWindow = document.createElement("div");
-  dmWindow.classList.add("dm-window");
+    const keyDoc = await getDoc(doc(db, "loginKeys", name));
+    if(!keyDoc.exists()){ alert("No key found for this username."); return; }
 
-  const header = document.createElement("div");
-  header.classList.add("dm-header");
-  header.textContent = otherUser;
+    const hashedInput = await hashKey(keyInput); // hash the entered key
+    const data = keyDoc.data();
 
-  const closeBtn = document.createElement("button");
-  closeBtn.textContent = "×";
-  closeBtn.style.background = "transparent";
-  closeBtn.style.border = "none";
-  closeBtn.style.color = "white";
-  closeBtn.style.fontSize = "16px";
-  closeBtn.style.cursor = "pointer";
-  closeBtn.onclick = () => {
-    unsubscribeDM();
-    dmWindow.remove();
-    dmWindows.delete(otherUser);
-  };
-  header.appendChild(closeBtn);
-  dmWindow.appendChild(header);
+    if(data.key !== hashedInput){ 
+      alert("Invalid key!"); 
+      return; 
+    }
 
-  const chatBox = document.createElement("div");
-  chatBox.classList.add("dm-chat");
-  dmWindow.appendChild(chatBox);
-
-  const form = document.createElement("form");
-  form.classList.add("dm-form");
-  const input = document.createElement("input");
-  input.type = "text";
-  input.placeholder = "Type a message..";
-  const sendBtn = document.createElement("button");
-  sendBtn.textContent = "Send";
-  sendBtn.type = "submit";
-  form.appendChild(input);
-  form.appendChild(sendBtn);
-  dmWindow.appendChild(form);
-
-  dmContainer.appendChild(dmWindow);
-  dmWindows.set(otherUser, dmWindow);
-
-  const roomName = [username, otherUser].sort().join("_DM_");
-  let unsubscribeDM = null;
-
-  const messagesRef = collection(db, "messages");
-  const q = query(messagesRef, orderBy("timestamp"));
-  unsubscribeDM = onSnapshot(q, snapshot => {
-    chatBox.innerHTML = "";
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      if (data.room !== roomName) return;
-      if (blockedUsers.includes(data.username)) return;
-      const msg = document.createElement("div");
-      msg.textContent = `${data.username}: ${data.text}`;
-      msg.style.margin = "2px 0";
-      chatBox.appendChild(msg);
-    });
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-
-  form.addEventListener("submit", async e => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = "";
-    if (blockedUsers.includes(otherUser)) { alert("You have ignored this user. Cannot send DM."); return; }
-    await addDoc(collection(db,"messages"), { username, text, room: roomName, timestamp: serverTimestamp() });
-  });
-}
-
-// --- Status controls ---
-function setStatus(newStatus) {
-  currentStatus = newStatus;
-  setDoc(doc(db,"onlineUsers",username), { username, lastSeen: serverTimestamp(), status: currentStatus }, { merge:true });
-}
-document.querySelector(".online-btn").onclick = ()=> setStatus("online");
-document.querySelector(".dnd-btn").onclick = ()=> setStatus("dnd");
-
-// --- Username/Login ---
-usernamePage.style.display="flex";
-const savedUsername = localStorage.getItem("triochat_username");
-if (savedUsername) checkLogin(savedUsername);
-
-registerBtn.addEventListener("click", async ()=>{
-  const name = usernameInput.value.trim();
-  if(!name) return;
-  const usernameDoc = doc(db,"usernames",name);
-  const docSnap = await getDoc(usernameDoc);
-  if(docSnap.exists()){ errorDiv.textContent="Username is already taken."; } 
-  else {
-    await setDoc(usernameDoc,{created:serverTimestamp()});
-    localStorage.setItem("triochat_username",name);
+    localStorage.setItem("triochat_username", name);
     checkLogin(name);
-  }
-});
-
-loginKeyBtn.addEventListener("click", async ()=>{
-  const name = usernameInput.value.trim();
-  if(!name){ alert("Enter a username first!"); return; }
-
-  const keyInput = prompt("Enter your login key:");
-  if(!keyInput) return;
-
-  const keyDoc = await getDoc(doc(db, "loginKeys", name));
-  if(!keyDoc.exists()){ alert("No key found for this username."); return; }
-
-  const hashedInput = await hashKey(keyInput); // hash the entered key
-  const data = keyDoc.data();
-
-  if(data.key !== hashedInput){ 
-    alert("Invalid key!"); 
-    return; 
-  }
-
-  localStorage.setItem("triochat_username", name);
-  checkLogin(name);
-});
-
-function checkLogin(name){
-  username = name;
-  usernamePage.style.display="none";
-  chatPage.style.display="flex";
-  statusUsername.textContent = "You: " + username;
-  setDoc(doc(db,"onlineUsers",username), { username, lastSeen:serverTimestamp(), status: currentStatus });
-  updateOnlineUsers();
-  loadRoomsRealtime();
-  startChat(currentRoom);
-}
-
-// Remove self on exit
-window.addEventListener("beforeunload", async ()=> {
-  await deleteDoc(doc(db,"onlineUsers",username));
-});
-
-// --- Rooms real-time ---
-function loadRoomsRealtime() {
-  const roomsRef = collection(db,"rooms");
-  if(unsubscribeRooms) unsubscribeRooms();
-  unsubscribeRooms = onSnapshot(roomsRef, snapshot => {
-    roomButtonsContainer.querySelectorAll('.room-btn').forEach(btn=>{
-      if(!["Room 1","Room 2","Room 3"].includes(btn.dataset.room)) btn.remove();
-    });
-    snapshot.forEach(docSnap=>{
-      const data = docSnap.data();
-      if(data.private && !data.allowedUsers.includes(username)) return;
-      addRoomButton(docSnap.id);
-    });
-    addRoomListeners();
-    setActiveRoomButton();
-    startChat(currentRoom);
   });
-}
 
-function addRoomButton(name){
-  if(document.querySelector(`.room-btn[data-room='${name}']`)) return;
-  const btn=document.createElement("button");
-  btn.classList.add("room-btn");
-  btn.dataset.room=name;
-  btn.textContent=name;
-  roomButtonsContainer.insertBefore(btn, document.getElementById("create-room-btn"));
-}
+  function checkLogin(name){
+    username = name;
+    usernamePage.style.display="none";
+    chatPage.style.display="flex";
+    statusUsername.textContent = "You: " + username;
+    setDoc(doc(db,"onlineUsers",username), { username, lastSeen:serverTimestamp(), status: currentStatus });
+    updateOnlineUsers();
+    loadRoomsRealtime();
+    startChat(currentRoom);
+  }
 
-function addRoomListeners(){
-  roomButtons = document.querySelectorAll(".room-btn");
-  roomButtons.forEach(btn=>{
-    btn.onclick = ()=>{
-      const selectedRoom = btn.dataset.room;
-      if(selectedRoom===currentRoom) return;
-      currentRoom=selectedRoom;
+  // Remove self on exit
+  window.addEventListener("beforeunload", async ()=> {
+    await deleteDoc(doc(db,"onlineUsers",username));
+  });
+
+  // --- Rooms real-time ---
+  function loadRoomsRealtime() {
+    const roomsRef = collection(db,"rooms");
+    if(unsubscribeRooms) unsubscribeRooms();
+    unsubscribeRooms = onSnapshot(roomsRef, snapshot => {
+      roomButtonsContainer.querySelectorAll('.room-btn').forEach(btn=>{
+        if(!["Room 1","Room 2","Room 3"].includes(btn.dataset.room)) btn.remove();
+      });
+      snapshot.forEach(docSnap=>{
+        const data = docSnap.data();
+        if(data.private && !data.allowedUsers.includes(username)) return;
+        addRoomButton(docSnap.id);
+      });
+      addRoomListeners();
       setActiveRoomButton();
       startChat(currentRoom);
-    };
-  });
-}
-
-function setActiveRoomButton(){
-  roomButtons.forEach(btn=>{
-    btn.classList.toggle("active", btn.dataset.room===currentRoom);
-  });
-}
-
-// --- Chat ---
-async function startChat(room){
-  chatBox.innerHTML="";
-  cachedMessages=[];
-  if(unsubscribeMessages) unsubscribeMessages();
-
-  const q = query(collection(db,"messages"), orderBy("timestamp"));
-  unsubscribeMessages = onSnapshot(q, snapshot=>{
-    snapshot.docChanges().forEach(change=>{
-      const data = change.doc.data();
-      if(data.room!==room) return;
-      if(change.type==="added") cachedMessages.push({id:change.doc.id,...data});
-      if(change.type==="modified"){ const idx=cachedMessages.findIndex(m=>m.id===change.doc.id); if(idx!==-1) cachedMessages[idx]={id:change.doc.id,...data}; }
-      if(change.type==="removed"){ cachedMessages = cachedMessages.filter(m=>m.id!==change.doc.id); }
     });
-    renderMessages();
+  }
+
+  function addRoomButton(name){
+    if(document.querySelector(`.room-btn[data-room='${name}']`)) return;
+    const btn=document.createElement("button");
+    btn.classList.add("room-btn");
+    btn.dataset.room=name;
+    btn.textContent=name;
+    roomButtonsContainer.insertBefore(btn, document.getElementById("create-room-btn"));
+  }
+
+  function addRoomListeners(){
+    roomButtons = document.querySelectorAll(".room-btn");
+    roomButtons.forEach(btn=>{
+      btn.onclick = ()=>{
+        const selectedRoom = btn.dataset.room;
+        if(selectedRoom===currentRoom) return;
+        currentRoom=selectedRoom;
+        setActiveRoomButton();
+        startChat(currentRoom);
+      };
+    });
+  }
+
+  function setActiveRoomButton(){
+    roomButtons.forEach(btn=>{
+      btn.classList.toggle("active", btn.dataset.room===currentRoom);
+    });
+  }
+
+  // --- Chat ---
+  async function startChat(room){
+    chatBox.innerHTML="";
+    cachedMessages=[];
+    if(unsubscribeMessages) unsubscribeMessages();
+
+    const q = query(collection(db,"messages"), orderBy("timestamp"));
+    unsubscribeMessages = onSnapshot(q, snapshot=>{
+      snapshot.docChanges().forEach(change=>{
+        const data = change.doc.data();
+        if(data.room!==room) return;
+        if(change.type==="added") cachedMessages.push({id:change.doc.id,...data});
+        if(change.type==="modified"){ const idx=cachedMessages.findIndex(m=>m.id===change.doc.id); if(idx!==-1) cachedMessages[idx]={id:change.doc.id,...data}; }
+        if(change.type==="removed"){ cachedMessages = cachedMessages.filter(m=>m.id!==change.doc.id); }
+      });
+      renderMessages();
+    });
+  }
+
+  function renderMessages(){
+    chatBox.innerHTML="";
+    cachedMessages.forEach(data=>{
+      if(blockedUsers.includes(data.username)) return;
+      const msg=document.createElement("div");
+      msg.classList.add("msg");
+      msg.textContent=`${data.username}: ${data.text}`;
+      chatBox.appendChild(msg);
+    });
+    chatBox.scrollTop=chatBox.scrollHeight;
+  }
+  function refreshMessages(){ renderMessages(); }
+
+  messageForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = messageInput.value.trim();
+    if (!text) return;
+
+    sendButton.disabled = true;
+
+    try {
+      // --- Mute/Ban Check ---
+      const muteDoc = await getDoc(doc(db, "mutedUsers", username));
+      if (muteDoc.exists() && muteDoc.data().muted) {
+        alert("You are muted and cannot send messages.");
+        return;
+      }
+
+      const banDoc = await getDoc(doc(db, "bannedUsers", username));
+      if (banDoc.exists() && banDoc.data().banned) {
+        alert("You are banned.");
+        location.reload();
+        return;
+      }
+
+      // --- Normal message send ---
+      await addDoc(collection(db, "messages"), {
+        text,
+        username,
+        room: currentRoom,
+        timestamp: serverTimestamp(),
+      });
+
+      messageInput.value = "";
+    } finally {
+      sendButton.disabled = false;
+    }
   });
-}
 
-function renderMessages(){
-  chatBox.innerHTML="";
-  cachedMessages.forEach(data=>{
-    if(blockedUsers.includes(data.username)) return;
-    const msg=document.createElement("div");
-    msg.classList.add("msg");
-    msg.textContent=`${data.username}: ${data.text}`;
-    chatBox.appendChild(msg);
-  });
-  chatBox.scrollTop=chatBox.scrollHeight;
-}
-function refreshMessages(){ renderMessages(); }
+  // --- Create private room with multiple users ---
+  document.getElementById("create-room-btn").addEventListener("click", async () => {
+    // Check if user already has a private room
+    const roomsRef = collection(db, "rooms");
+    const snapshot = await getDocs(roomsRef);
+    const hasPrivateRoom = snapshot.docs.some(docSnap => {
+      const data = docSnap.data();
+      return data.private && data.allowedUsers.includes(username);
+    });
 
-messageForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const text = messageInput.value.trim();
-  if (!text) return;
-
-  sendButton.disabled = true;
-
-  try {
-    // --- Mute/Ban Check ---
-    const muteDoc = await getDoc(doc(db, "mutedUsers", username));
-    if (muteDoc.exists() && muteDoc.data().muted) {
-      alert("You are muted and cannot send messages.");
+    if (hasPrivateRoom) {
+      alert("You can only create one private room.");
       return;
     }
 
-    const banDoc = await getDoc(doc(db, "bannedUsers", username));
-    if (banDoc.exists() && banDoc.data().banned) {
-      alert("You are banned.");
+    const roomName = prompt("Enter new private room name:");
+    if (!roomName) return;
+
+    const otherUsersInput = prompt("Enter usernames to share with, separated by commas:");
+    if (!otherUsersInput) return;
+
+    const otherUsers = otherUsersInput
+      .split(",")
+      .map(u => u.trim())
+      .filter(u => u && u !== username); // Remove empty or own username
+
+    if (otherUsers.length === 0) {
+      alert("You must enter at least one other user.");
+      return;
+    }
+
+    await setDoc(doc(db, "rooms", roomName), {
+      private: true,
+      allowedUsers: [username, ...otherUsers]
+    });
+
+    alert(`Private room "${roomName}" created with: ${otherUsers.join(", ")}`);
+  });
+
+  const settingsOverlay = document.getElementById("settings-overlay");
+
+  settingsBtn.onclick = () => {
+    settingsPopup.style.display = "block";
+    settingsOverlay.style.display = "block";
+  };
+
+  closeSettingsTopBtn.onclick = () => {
+    settingsPopup.style.display = "none";
+    settingsOverlay.style.display = "none";
+  };
+
+  deleteAccountBtn.onclick = async () => {
+    const confirmDelete = confirm("Are you sure you want to delete your account? This cannot be undone.");
+    if (!confirmDelete) return;
+
+    try {
+      // Remove from online users
+      await deleteDoc(doc(db, "onlineUsers", username));
+      
+      // Delete username
+      await deleteDoc(doc(db, "usernames", username));
+      
+      // Delete login key
+      await deleteDoc(doc(db, "loginKeys", username));
+
+      // Clear local storage and reload
+      localStorage.removeItem("triochat_username");
+      alert("Your account has been deleted.");
       location.reload();
-      return;
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting account. Check console.");
     }
+  };
 
-    // --- Normal message send ---
-    await addDoc(collection(db, "messages"), {
-      text,
-      username,
-      room: currentRoom,
-      timestamp: serverTimestamp(),
+  // Utility: hash string with SHA-256 and return hex
+  async function hashKey(key) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(key);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  // Generate key
+  generateKeySettingsBtn.onclick = async ()=>{
+    const key = Math.random().toString(36).substring(2,10).toUpperCase();
+    const hashedKey = await hashKey(key);
+
+    await setDoc(doc(db, "loginKeys", username), {
+      key: hashedKey,
+      timestamp: serverTimestamp()
     });
 
-    messageInput.value = "";
-  } finally {
-    sendButton.disabled = false;
-  }
-});
+    alert("Your login key is: " + key);
+  };
 
-// --- Create private room with multiple users ---
-document.getElementById("create-room-btn").addEventListener("click", async () => {
-  // Check if user already has a private room
-  const roomsRef = collection(db, "rooms");
-  const snapshot = await getDocs(roomsRef);
-  const hasPrivateRoom = snapshot.docs.some(docSnap => {
-    const data = docSnap.data();
-    return data.private && data.allowedUsers.includes(username);
-  });
+  // Dark mode
+  darkModeToggleBtn.onclick = () => {
+    const isDark = document.body.classList.toggle("dark-theme");
+    localStorage.setItem("darkMode", isDark ? "true" : "false");
+  };
 
-  if (hasPrivateRoom) {
-    alert("You can only create one private room.");
-    return;
-  }
-
-  const roomName = prompt("Enter new private room name:");
-  if (!roomName) return;
-
-  const otherUsersInput = prompt("Enter usernames to share with, separated by commas:");
-  if (!otherUsersInput) return;
-
-  const otherUsers = otherUsersInput
-    .split(",")
-    .map(u => u.trim())
-    .filter(u => u && u !== username); // Remove empty or own username
-
-  if (otherUsers.length === 0) {
-    alert("You must enter at least one other user.");
-    return;
-  }
-
-  await setDoc(doc(db, "rooms", roomName), {
-    private: true,
-    allowedUsers: [username, ...otherUsers]
-  });
-
-  alert(`Private room "${roomName}" created with: ${otherUsers.join(", ")}`);
-});
-
-const settingsOverlay = document.getElementById("settings-overlay");
-
-settingsBtn.onclick = () => {
-  settingsPopup.style.display = "block";
-  settingsOverlay.style.display = "block";
-};
-
-closeSettingsTopBtn.onclick = () => {
-  settingsPopup.style.display = "none";
-  settingsOverlay.style.display = "none";
-};
-
-deleteAccountBtn.onclick = async () => {
-  const confirmDelete = confirm("Are you sure you want to delete your account? This cannot be undone.");
-  if (!confirmDelete) return;
-
-  try {
-    // Remove from online users
-    await deleteDoc(doc(db, "onlineUsers", username));
-    
-    // Delete username
-    await deleteDoc(doc(db, "usernames", username));
-    
-    // Delete login key
-    await deleteDoc(doc(db, "loginKeys", username));
-
-    // Clear local storage and reload
+  // Logout
+  logoutBtn.onclick = async ()=>{
+    await deleteDoc(doc(db,"onlineUsers",username));
     localStorage.removeItem("triochat_username");
-    alert("Your account has been deleted.");
     location.reload();
-  } catch (err) {
-    console.error(err);
-    alert("Error deleting account. Check console.");
-  }
-};
-
-// Utility: hash string with SHA-256 and return hex
-async function hashKey(key) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(key);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-// Generate key
-generateKeySettingsBtn.onclick = async ()=>{
-  const key = Math.random().toString(36).substring(2,10).toUpperCase();
-  const hashedKey = await hashKey(key);
-
-  await setDoc(doc(db, "loginKeys", username), {
-    key: hashedKey,
-    timestamp: serverTimestamp()
-  });
-
-  alert("Your login key is: " + key);
-};
-
-// Dark mode
-darkModeToggleBtn.onclick = () => {
-  const isDark = document.body.classList.toggle("dark-theme");
-  localStorage.setItem("darkMode", isDark ? "true" : "false");
-};
-
-// Logout
-logoutBtn.onclick = async ()=>{
-  await deleteDoc(doc(db,"onlineUsers",username));
-  localStorage.removeItem("triochat_username");
-  location.reload();
-};
-</script>
-</body>
-</html>
+  };
+  </script>
+  </body>
+  </html>
