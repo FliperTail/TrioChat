@@ -2,7 +2,7 @@
   <html lang="en">
   <head>
   <meta charset="UTF-8">
-  <title>TrioChat-demo v16.5</title>
+  <title>TrioChat-demo v16.6</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -205,20 +205,23 @@
 
   <div id="dm-container" style="position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 9999;"></div>
 
-<!-- Admin Panel Popup -->
-<div id="admin-panel-popup" style="display:none; padding:20px; border:1px solid #ccc; background:#fff; position:fixed; top:20%; left:30%; width:40%; z-index:1000;">
-  <button id="close-admin-panel">Close</button>
-  
-  <!-- Tabs -->
-  <div id="admin-tabs" style="margin-top:10px;">
-    <button id="users-tab">Users</button>
-    <button id="warnings-tab">Warnings</button>
-  </div>
+  <div id="admin-panel-popup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:#fff; padding:20px; border-radius:5px; box-shadow:0 2px 10px rgba(0,0,0,0.3); z-index:10000; width:400px; max-height:500px; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0;">Admin Panel</h3>
+      <button id="close-admin-panel">X</button>
+    </div>
 
-  <!-- Views -->
-  <div id="admin-users-view" style="margin-top:10px;"></div>
-  <div id="admin-warnings-view" style="margin-top:10px; display:none;"></div>
-</div>
+    <!-- Tabs -->
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <button id="users-tab">Users</button>
+      <button id="warnings-tab">Warnings</button>
+    </div>
+
+    <!-- Views -->
+    <div id="admin-users-view"></div>
+    <div id="admin-warnings-view" style="display:none;"></div>
+  </div>
 
 <div id="admin-users-view"></div>
 <div id="admin-warnings-view" style="display:none;"></div>
@@ -649,26 +652,41 @@ async function resolveBadgePathForRole(role) {
   const adminUserList = document.getElementById("admin-user-list");
   const closeAdminPanelBtn = document.getElementById("close-admin-panel");
 
-// Show admin panel button only if current user is Developer/Admin/Mod
-async function checkAdminPanelAccess() {
-  const userDoc = await getDoc(doc(db, "usernames", username));
-  const role = userDoc.data()?.role || null;
-  if (role === "Developer" || role === "Admin" || role === "Mod") {
-    adminPanelBtn.style.display = "block";
+  // Show admin panel button only if current user is Developer/Admin/Mod
+  async function checkAdminPanelAccess() {
+    const userDoc = await getDoc(doc(db, "usernames", username));
+    const role = userDoc.data()?.role || null;
+    if (role === "Developer" || role === "Admin" || role === "Mod") {
+      adminPanelBtn.style.display = "block";
+    }
   }
-}
 
-adminPanelBtn.onclick = () => {
-  adminPanelPopup.style.display = "block";
-  loadAdminUsers();
-};
+  adminPanelBtn.onclick = () => {
+    adminPanelPopup.style.display = "block";
+    loadAdminUsers();
+  };
 
-closeAdminPanelBtn.onclick = () => {
-  adminPanelPopup.style.display = "none";
-};
+  const usersTab = document.getElementById("users-tab");
+  const warningsTab = document.getElementById("warnings-tab");
 
+  // Close panel
+  closeAdminPanelBtn.onclick = () => adminPanelPopup.style.display = "none";
+
+  // Tabs
+  usersTab.onclick = () => {
+    usersView.style.display = "block";
+    warningsView.style.display = "none";
+    loadAdminUsers();
+  };
+  warningsTab.onclick = () => {
+    usersView.style.display = "none";
+    warningsView.style.display = "block";
+    loadAllWarnings();
+  };
+
+  // --- Load Users ---
   async function loadAdminUsers() {
-    adminUserList.innerHTML = "";
+    usersView.innerHTML = "";
     const usersSnapshot = await getDocs(collection(db, "usernames"));
 
     usersSnapshot.forEach(async userSnap => {
@@ -678,22 +696,22 @@ closeAdminPanelBtn.onclick = () => {
       const div = document.createElement("div");
       div.style.display = "flex";
       div.style.justifyContent = "space-between";
+      div.style.alignItems = "center";
       div.style.margin = "5px 0";
       div.style.padding = "5px";
       div.style.borderBottom = "1px solid #ccc";
 
       const nameSpan = document.createElement("span");
       nameSpan.textContent = u;
-      nameSpan.style.color = "#000"; // make sure visible
 
       const btnsDiv = document.createElement("div");
       btnsDiv.style.display = "flex";
       btnsDiv.style.gap = "5px";
 
-      // --- Warn button ---
+      // Warn button
       const warnBtn = document.createElement("button");
       warnBtn.textContent = "Warn";
-      warnBtn.style.background = "#ffc107"; // yellow
+      warnBtn.style.background = "#ffc107";
       warnBtn.onclick = async () => {
         const reason = prompt(`Enter reason for warning ${u}:`);
         if (!reason) return;
@@ -701,60 +719,45 @@ closeAdminPanelBtn.onclick = () => {
         const warnRef = doc(db, "warnings", u);
         const warnSnap = await getDoc(warnRef);
         let warnings = warnSnap.exists() ? warnSnap.data().list || [] : [];
-
         warnings.push(`Warning ${warnings.length + 1} / ${reason}`);
-
         await setDoc(warnRef, { list: warnings });
-
         alert(`${u} has been warned: ${reason}`);
       };
 
-      // --- Ban / Unban button ---
-      const banBtn = document.createElement("button");
-      const banRef = doc(db, "bannedUsers", u);
-      const banSnap = await getDoc(banRef);
-      let isBanned = banSnap.exists();
-
-      banBtn.textContent = isBanned ? "Unban" : "Ban";
-      banBtn.style.background = isBanned ? "#6c757d" : "#dc3545";
-
-      banBtn.onclick = async () => {
-        if (isBanned) {
-          await deleteDoc(banRef);
-          alert(`${u} has been unbanned.`);
-        } else {
-          await setDoc(banRef, { banned: true });
-          await deleteDoc(doc(db, "onlineUsers", u));
-          alert(`${u} has been banned.`);
-        }
-        loadAdminUsers();
-      };
-
-      // --- Mute / Unmute button ---
-      const muteBtn = document.createElement("button");
-      const muteRef = doc(db, "mutedUsers", u);
-      const muteSnap = await getDoc(muteRef);
-      let isMuted = muteSnap.exists();
-
-      muteBtn.textContent = isMuted ? "Unmute" : "Mute";
-      muteBtn.style.background = isMuted ? "#6c757d" : "#28a745";
-
-      muteBtn.onclick = async () => {
-        if (isMuted) {
-          await deleteDoc(muteRef);
-          alert(`${u} has been unmuted.`);
-        } else {
-          await setDoc(muteRef, { muted: true });
-          alert(`${u} has been muted.`);
-        }
-        loadAdminUsers(); // refresh UI
-      };
-
-      btnsDiv.append(warnBtn, banBtn, muteBtn);
+      // Append
+      btnsDiv.appendChild(warnBtn);
       div.append(nameSpan, btnsDiv);
-      adminUserList.appendChild(div);
+      usersView.appendChild(div);
     });
   }
+
+// --- Load All Warnings ---
+async function loadAllWarnings() {
+  warningsView.innerHTML = "";
+  const warnDocs = await getDocs(collection(db, "warnings"));
+  warnDocs.forEach(docSnap => {
+    const u = docSnap.id;
+    const list = docSnap.data().list || [];
+    if (list.length === 0) return;
+
+    const div = document.createElement("div");
+    div.style.marginBottom = "10px";
+
+    const userTitle = document.createElement("strong");
+    userTitle.textContent = u;
+    div.appendChild(userTitle);
+
+    const ul = document.createElement("ul");
+    list.forEach(w => {
+      const li = document.createElement("li");
+      li.textContent = w;
+      ul.appendChild(li);
+    });
+    div.appendChild(ul);
+
+    warningsView.appendChild(div);
+  });
+}
 
   // Run check on login
   checkAdminPanelAccess();
