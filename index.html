@@ -2,7 +2,7 @@
   <html lang="en">
   <head>
   <meta charset="UTF-8">
-  <title>TrioChat-demo v15.13</title>
+  <title>TrioChat-demo v15.14</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -159,17 +159,12 @@
       <button id="create-room-btn" style="background:#28a745;color:white;">+ Create Room</button>
       <button id="settings-btn" style="background:#6c757d;color:white;">Settings</button>
     </div>
-
     <div class="chat-container">
       <div id="user-list">
         <h4>Online Users</h4>
         <div id="users"></div>
         <div id="status-box">
           <h5 id="status-username"></h5>
-            <div id="status-buttons">
-              <button id="status-online" class="status-btn online-btn">Online</button>
-              <button id="status-dnd" class="status-btn dnd-btn">Do Not Disturb</button>
-            </div>
         </div>
       </div>
       <div id="chat-area">
@@ -564,33 +559,6 @@ async function resolveBadgePathForRole(role) {
       await addDoc(collection(db,"messages"), { username, text, room: roomName, timestamp: serverTimestamp() });
     });
   }
-
-  // --- Status controls ---
-  function setStatus(newStatus) {
-    currentStatus = newStatus;
-
-    // Update Firestore
-    const role = localStorage.getItem("userRole") || "User";
-    setDoc(doc(db, "onlineUsers", username), {
-      username,
-      lastSeen: serverTimestamp(),
-      status: currentStatus,
-      role
-    }, { merge: true });
-
-    // Update button highlight
-    document.querySelectorAll(".status-btn").forEach(btn => {
-      btn.classList.remove("active");
-    });
-    document.querySelector(`#status-${newStatus}`).classList.add("active");
-  }
-
-  // Hook up listeners
-  document.getElementById("status-online").addEventListener("click", () => setStatus("online"));
-  document.getElementById("status-dnd").addEventListener("click", () => setStatus("dnd"));
-
-// Mark "online" active on load
-setStatus("online");
 
   // --- Username/Login ---
   usernamePage.style.display="flex";
