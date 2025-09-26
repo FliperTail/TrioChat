@@ -7,7 +7,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrioChat-demo v16.14</title>
+  <title>TrioChat-demo v16.15</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -141,6 +141,39 @@
   background: #4caf50;
   color: white;
   }
+  #adminPanel {
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+}
+  #adminTabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  #adminTabs button {
+    padding: 5px 10px;
+    border: none;
+    background: #007bff;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  #adminTabs button:hover {
+    background: #0056b3;
+  }
+
+  .tabView {
+    display: none;
+  }
+
+  .tabView.active {
+    display: block;
+  }
   </style>
   </head>
   <body>
@@ -201,7 +234,7 @@
     <button id="dark-mode-toggle">Toggle Dark Mode</button>
     <button id="logout-btn">Logout</button>
     <button id="delete-account-btn" style="background:#dc3545;color:white;">Delete Account</button>
-    <button id="admin-panel-btn" style="background:#710d65fc;color:white; display:none;">Admin Panel</button>
+    <button id="admin-panel-btn" style="background:#dc358b;color:white; display:none;">Admin Panel</button>
   </div>
 
   <div id="settings-overlay" 
@@ -236,6 +269,15 @@
   <div id="admin-tabs">
     <button id="users-tab">Users</button>
     <button id="warnings-tab">Warnings</button>
+  </div>
+
+  <div id="adminPanel">
+    <div id="adminTabs">
+      <button id="usersTab">Users</button>
+      <button id="warningsTab">Warnings</button>
+  </div>
+    <div id="usersView" class="tabView"></div>
+    <div id="warningsView" class="tabView" style="display:none"></div>
   </div>
 
   <script type="module">
@@ -1131,4 +1173,3 @@ async function resolveBadgePathForRole(role) {
   </body>
   </html>
     <script>console.log("Website has fully loaded!")</script>
-    
