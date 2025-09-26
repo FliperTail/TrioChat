@@ -1,9 +1,13 @@
   <!DOCTYPE html>
   <html lang="en">
   <head>
+  <script>
+    console.log("Welcome to TrioChat!")
+    console.warn("This project is still being worked on and is right now in DEMO.")
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrioChat-demo v16.13</title>
+  <title>TrioChat-demo v16.14</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -228,6 +232,11 @@
   <div id="admin-users-view"></div>
   <div id="admin-warnings-view" style="display:none;"></div>
   <div id="usersTab"></div>
+
+  <div id="admin-tabs">
+    <button id="users-tab">Users</button>
+    <button id="warnings-tab">Warnings</button>
+  </div>
 
   <script type="module">
   let cachedMessages = [];
@@ -692,7 +701,8 @@ async function resolveBadgePathForRole(role) {
   };
 
   async function loadAdminUsers() {
-    usersTab.innerHTML = ""; // clear only the users tab
+    usersView.innerHTML = "";
+
     const usersSnapshot = await getDocs(collection(db, "usernames"));
 
     usersSnapshot.forEach(async (userSnap) => {
@@ -733,7 +743,9 @@ async function resolveBadgePathForRole(role) {
       const banBtn = document.createElement("button");
       const banRef = doc(db, "bannedUsers", u);
       const banSnap = await getDoc(banRef);
-      let isBanned = banSnap.exists() && (banSnap.data().expiresAtMillis > Date.now());
+      let isBanned =
+        banSnap.exists() && banSnap.data().expiresAtMillis > Date.now();
+
       banBtn.textContent = isBanned ? "Unban" : "Ban";
       banBtn.style.background = isBanned ? "#6c757d" : "#dc3545";
 
@@ -745,11 +757,16 @@ async function resolveBadgePathForRole(role) {
           banBtn.textContent = "Ban";
           banBtn.style.background = "#dc3545";
         } else {
-          const hours = parseFloat(prompt(`Enter ban duration in hours for ${u}:`));
+          const hours = parseFloat(
+            prompt(`Enter ban duration in hours for ${u}:`)
+          );
           if (!hours || hours <= 0) return alert("Invalid duration.");
           const expiresAt = new Date(Date.now() + hours * 3600 * 1000);
-          await setDoc(banRef, { banned: true, expiresAtMillis: expiresAt.getTime() });
-          await deleteDoc(doc(db, "onlineUsers", u)); // remove online immediately
+          await setDoc(banRef, {
+            banned: true,
+            expiresAtMillis: expiresAt.getTime(),
+          });
+          await deleteDoc(doc(db, "onlineUsers", u)); // kick them
           alert(`${u} has been banned for ${hours} hour(s).`);
           isBanned = true;
           banBtn.textContent = "Unban";
@@ -762,6 +779,7 @@ async function resolveBadgePathForRole(role) {
       const muteRef = doc(db, "mutedUsers", u);
       const muteSnap = await getDoc(muteRef);
       let isMuted = muteSnap.exists();
+
       muteBtn.textContent = isMuted ? "Unmute" : "Mute";
       muteBtn.style.background = isMuted ? "#6c757d" : "#28a745";
 
@@ -1112,3 +1130,5 @@ async function resolveBadgePathForRole(role) {
   </script>
   </body>
   </html>
+    <script>console.log("Website has fully loaded!")</script>
+    
