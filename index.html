@@ -2,7 +2,7 @@
   <html lang="en">
   <head>
   <meta charset="UTF-8">
-  <title>TrioChat-demo v16.9</title>
+  <title>TrioChat-demo v16.10</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -689,39 +689,47 @@ async function resolveBadgePathForRole(role) {
   async function loadUsers() {
     usersTab.innerHTML = ""; // clear only the users tab
     const usersSnapshot = await getDocs(collection(db, "usernames"));
-    usersSnapshot.forEach(async userSnap => {
+
+    usersSnapshot.forEach(async (userSnap) => {
       const u = userSnap.id;
-      if (u === username) return;
+      if (u === username) return; // skip self
 
       const div = document.createElement("div");
       div.style.display = "flex";
       div.style.justifyContent = "space-between";
       div.style.color = "black";
+      div.style.margin = "5px 0";
+      div.style.padding = "5px";
+      div.style.borderBottom = "1px solid #ccc";
 
       const nameSpan = document.createElement("span");
       nameSpan.textContent = u;
 
       const btnsDiv = document.createElement("div");
+      btnsDiv.style.display = "flex";
+      btnsDiv.style.gap = "5px";
 
+      // Warn button
       const warnBtn = document.createElement("button");
       warnBtn.textContent = "Warn";
-      warnBtn.onclick = async () => { 
-          const reason = prompt(`Enter reason for warning ${u}:`);
-          if (!reason) return;
+      warnBtn.onclick = async () => {
+        const reason = prompt(`Enter reason for warning ${u}:`);
+        if (!reason) return;
 
-          const warnRef = doc(db, "warnings", u);
-          const warnSnap = await getDoc(warnRef);
-          let warnings = warnSnap.exists() ? warnSnap.data().list || [] : [];
-          warnings.push(`Warning ${warnings.length + 1} / ${reason}`);
-          await setDoc(warnRef, { list: warnings });
-          alert(`${u} has been warned: ${reason}`);
+        const warnRef = doc(db, "warnings", u);
+        const warnSnap = await getDoc(warnRef);
+        let warnings = warnSnap.exists() ? warnSnap.data().list || [] : [];
+        warnings.push(`Warning ${warnings.length + 1}: ${reason}`);
+        await setDoc(warnRef, { list: warnings });
+        alert(`${u} has been warned: ${reason}`);
       };
 
+      // Ban button
       const banBtn = document.createElement("button");
 
       const banRef = doc(db, "bannedUsers", u);
       const banSnap = await getDoc(banRef);
-      let isBanned = banSnap.exists() && (banSnap.data().expiresAt?.toMillis() > Date.now());
+      let isBanned = banSnap.exists() && (banSnap.data().expiresAtMillis > Date.now());
 
       banBtn.textContent = isBanned ? "Unban" : "Ban";
       banBtn.style.background = isBanned ? "#6c757d" : "#dc3545";
@@ -741,11 +749,10 @@ async function resolveBadgePathForRole(role) {
 
           await setDoc(banRef, {
             banned: true,
-            expiresAt: serverTimestamp(), // fallback timestamp
-            expiresAtMillis: expiresAt.getTime() // store precise expiration
+            expiresAtMillis: expiresAt.getTime(),
           });
 
-          // Also remove them from online users immediately
+          // Remove user from online users immediately
           await deleteDoc(doc(db, "onlineUsers", u));
 
           alert(`${u} has been banned for ${hours} hour(s).`);
@@ -755,38 +762,30 @@ async function resolveBadgePathForRole(role) {
         }
       };
 
+      // Mute button
       const muteBtn = document.createElement("button");
-      muteBtn.textContent = "Mute";
-      muteBtn.onclick = async () => { 
-        const muteBtn = document.createElement("button");
 
-        // Check if the user is muted initially
-        const muteRef = doc(db, "mutedUsers", u);
-        const muteSnap = await getDoc(muteRef);
-        let isMuted = muteSnap.exists();
+      const muteRef = doc(db, "mutedUsers", u);
+      const muteSnap = await getDoc(muteRef);
+      let isMuted = muteSnap.exists();
 
-        muteBtn.textContent = isMuted ? "Unmute" : "Mute";
-        muteBtn.style.background = isMuted ? "#6c757d" : "#28a745";
+      muteBtn.textContent = isMuted ? "Unmute" : "Mute";
+      muteBtn.style.background = isMuted ? "#6c757d" : "#28a745";
 
-        muteBtn.onclick = async () => {
-          const muteRef = doc(db, "mutedUsers", u);
-
-          if (isMuted) {
-            // Unmute: delete the document
-            await deleteDoc(muteRef);
-            alert(`${u} has been unmuted.`);
-            isMuted = false;
-            muteBtn.textContent = "Mute";
-            muteBtn.style.background = "#28a745";
-          } else {
-            // Mute: create the document
-            await setDoc(muteRef, { muted: true });
-            alert(`${u} has been muted.`);
-            isMuted = true;
-            muteBtn.textContent = "Unmute";
-            muteBtn.style.background = "#6c757d";
-          }
-        }; 
+      muteBtn.onclick = async () => {
+        if (isMuted) {
+          await deleteDoc(muteRef);
+          alert(`${u} has been unmuted.`);
+          isMuted = false;
+          muteBtn.textContent = "Mute";
+          muteBtn.style.background = "#28a745";
+        } else {
+          await setDoc(muteRef, { muted: true });
+          alert(`${u} has been muted.`);
+          isMuted = true;
+          muteBtn.textContent = "Unmute";
+          muteBtn.style.background = "#6c757d";
+        }
       };
 
       btnsDiv.append(warnBtn, banBtn, muteBtn);
