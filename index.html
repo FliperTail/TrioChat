@@ -2,7 +2,7 @@
   <html lang="en">
   <head>
   <meta charset="UTF-8">
-  <title>TrioChat-demo v16.6</title>
+  <title>TrioChat-demo v16.5</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -667,28 +667,30 @@ closeAdminPanelBtn.onclick = () => {
   adminPanelPopup.style.display = "none";
 };
 
-  const usersView = document.getElementById("admin-users-view");
+  async function loadAdminUsers() {
+    adminUserList.innerHTML = "";
+    const usersSnapshot = await getDocs(collection(db, "usernames"));
 
-async function loadAdminUsers() {
-  usersView.innerHTML = ""; // <- make sure this ID matches
-  const usersSnapshot = await getDocs(collection(db, "usernames"));
+    usersSnapshot.forEach(async userSnap => {
+      const u = userSnap.id;
+      if (u === username) return; // skip self
 
-  usersSnapshot.forEach(async userSnap => {
-    const u = userSnap.id;
-    if (u === username) return; // skip self
+      const div = document.createElement("div");
+      div.style.display = "flex";
+      div.style.justifyContent = "space-between";
+      div.style.margin = "5px 0";
+      div.style.padding = "5px";
+      div.style.borderBottom = "1px solid #ccc";
 
-    const div = document.createElement("div");
-    div.style.display = "flex";
-    div.style.justifyContent = "space-between";
-    div.style.margin = "5px 0";
-    div.style.padding = "5px";
-    div.style.borderBottom = "1px solid #ccc";
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = u;
+      nameSpan.style.color = "#000"; // make sure visible
 
-    const nameSpan = document.createElement("span");
-    nameSpan.textContent = u;
-    div.appendChild(nameSpan);
+      const btnsDiv = document.createElement("div");
+      btnsDiv.style.display = "flex";
+      btnsDiv.style.gap = "5px";
 
-    // --- Warn button ---
+      // --- Warn button ---
       const warnBtn = document.createElement("button");
       warnBtn.textContent = "Warn";
       warnBtn.style.background = "#ffc107"; // yellow
@@ -751,9 +753,8 @@ async function loadAdminUsers() {
       btnsDiv.append(warnBtn, banBtn, muteBtn);
       div.append(nameSpan, btnsDiv);
       adminUserList.appendChild(div);
-    usersView.appendChild(div);
-  });
-}
+    });
+  }
 
   // Run check on login
   checkAdminPanelAccess();
@@ -765,6 +766,7 @@ async function loadAdminUsers() {
 
   const usersTab = document.getElementById("users-tab");
   const warningsTab = document.getElementById("warnings-tab");
+  const usersView = document.getElementById("admin-users-view");
   const warningsView = document.getElementById("admin-warnings-view");
 
   usersTab.onclick = () => {
