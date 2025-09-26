@@ -29,3 +29,4 @@ Rules will most likely change!
 - Making custom clients is allowed but must be open source stated by the license
 - This project is just a side project. Development might be slow depending on the day
 - THIS PROJECT IS ONLY IN DEMO AS OF NOW!
+- Credit to Catattack for testing some things for me
