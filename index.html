@@ -2,7 +2,7 @@
   <html lang="en">
   <head>
   <meta charset="UTF-8">
-  <title>TrioChat-demo v15.6</title>
+  <title>TrioChat-demo v15.7</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -262,111 +262,114 @@
   let currentStatus = "online";
   let onlineUsersInitialized = false;
 
-function updateOnlineUsers() {
-  if (onlineUsersInitialized) return;
-  onlineUsersInitialized = true;
+    function updateOnlineUsers() {
+      if (onlineUsersInitialized) return;
+      onlineUsersInitialized = true;
 
-  const onlineRef = collection(db, "onlineUsers");
+      const onlineRef = collection(db, "onlineUsers");
 
-  // Keep your presence updated every 5s
-  setInterval(async () => {
-    const userRef = doc(db, "onlineUsers", username);
-    await setDoc(
-      userRef,
-      { username, lastSeen: serverTimestamp(), status: currentStatus },
-      { merge: true }
-    );
-  }, 5000);
+      // Keep your presence updated every 5s
+      setInterval(async () => {
+        const userRef = doc(db, "onlineUsers", username);
+        const role = localStorage.getItem("userRole") || "User";
+        await setDoc(
+          userRef,
+          { username, lastSeen: serverTimestamp(), status: currentStatus, role },
+          { merge: true }
+        );
+      }, 5000);
 
-  // Listen for all online users
-  onSnapshot(onlineRef, snapshot => {
-    const now = Date.now();
-    const seenUsers = new Set();
+      // Listen to onlineUsers collection
+      onSnapshot(onlineRef, async snapshot => {
+        const now = Date.now();
+        const seenUsers = new Set();
 
-    snapshot.forEach(async docSnap => {
-      const onlineData = docSnap.data();
-      if (!onlineData || !onlineData.username) return;
-      if (onlineData.username === username) return; // skip self
+        // Use for...of to allow async
+        for (const docSnap of snapshot.docs) {
+          const data = docSnap.data();
+          if (!data || !data.username || data.username === username) continue;
 
-      const lastSeen = onlineData.lastSeen?.toMillis?.() || 0;
-      if (now - lastSeen > 15000) return;
-      seenUsers.add(onlineData.username);
+          const lastSeen = data.lastSeen && data.lastSeen.toMillis ? data.lastSeen.toMillis() : 0;
+          if (now - lastSeen > 15000) continue;
+          seenUsers.add(data.username);
 
-      let userDiv = onlineUsersMap.get(onlineData.username);
-      const usernameText = onlineData.username;
+          const usernameText = data.username;
 
-      // Fetch role from users collection
-      const userDocRef = doc(db, "usernames", usernameText);
-      const userSnap = await getDoc(userDocRef);
-      const role = userSnap.exists() ? userSnap.data().role || null : null;
+          // Fetch role from users collection
+          const userDiv = onlineUsersMap.get(usernameText);
+          const userDocRef = doc(db, "usernames", usernameText);
 
-      if (!userDiv) {
-        // Create new user div
-        userDiv = document.createElement("div");
-        userDiv.className = "user-entry";
+          // If the user is new
+          if (!userDiv) {
+            const newUserDiv = document.createElement("div");
+            newUserDiv.className = "user-entry";
 
-        const usernameSpan = document.createElement("span");
-        usernameSpan.className = "user-name";
-        usernameSpan.textContent = usernameText;
+            const usernameSpan = document.createElement("span");
+            usernameSpan.className = "user-name";
+            usernameSpan.textContent = usernameText;
+            newUserDiv.appendChild(usernameSpan);
 
-        if (role) {
-          const badge = document.createElement("img");
-          badge.className = "badge";
-          if (role === "Developer") badge.src = "/assets/badges/developer-badge.png";
-          if (role === "Admin") badge.src = "/assets/badges/admin-badge.png";
-          if (role === "Mod") badge.src = "/assets/badges/mod-badge.png";
-          usernameSpan.appendChild(badge);
-        }
+            const buttonsDiv = document.createElement("div");
+            buttonsDiv.className = "user-buttons";
 
-        userDiv.appendChild(usernameSpan);
+            const dmBtn = document.createElement("button");
+            dmBtn.className = "dm-btn";
+            dmBtn.textContent = "DM";
+            dmBtn.onclick = () => openDMModal(usernameText);
 
-        const buttonsDiv = document.createElement("div");
-        buttonsDiv.className = "user-buttons";
+            const blockBtn = document.createElement("button");
+            blockBtn.className = "block-btn";
+            blockBtn.textContent = blockedUsers.includes(usernameText) ? "Unignore" : "Ignore";
+            blockBtn.onclick = () => toggleBlock(usernameText, blockBtn);
 
-        const dmBtn = document.createElement("button");
-        dmBtn.className = "dm-btn";
-        dmBtn.textContent = "DM";
-        dmBtn.onclick = () => openDMModal(usernameText);
+            buttonsDiv.append(dmBtn, blockBtn);
+            newUserDiv.appendChild(buttonsDiv);
 
-        const blockBtn = document.createElement("button");
-        blockBtn.className = "block-btn";
-        blockBtn.textContent = blockedUsers.includes(usernameText) ? "Unignore" : "Ignore";
-        blockBtn.onclick = () => toggleBlock(usernameText, blockBtn);
+            usersDiv.appendChild(newUserDiv);
+            onlineUsersMap.set(usernameText, newUserDiv);
 
-        buttonsDiv.append(dmBtn, blockBtn);
-        userDiv.appendChild(buttonsDiv);
+            // --- Real-time role updates ---
+            const unsubscribe = onSnapshot(userDocRef, userSnap => {
+              const userData = userSnap.data();
+              const role = userData?.role || null;
+              let badge = usernameSpan.querySelector(".badge");
 
-        usersDiv.appendChild(userDiv);
-        onlineUsersMap.set(usernameText, userDiv);
-      } else {
-        // Update badge if role changed
-        const span = userDiv.querySelector(".user-name");
-        let badge = span.querySelector(".badge");
+              if (role) {
+                if (!badge) {
+                  badge = document.createElement("img");
+                  badge.className = "badge";
+                  usernameSpan.appendChild(badge);
+                }
+                badge.src =
+                  role === "Developer"
+                    ? "/assets/badges/developer-badge.png"
+                    : role === "Admin"
+                    ? "/assets/badges/admin-badge.png"
+                    : role === "Mod"
+                    ? "/assets/badges/mod-badge.png"
+                    : "";
+              } else if (badge) {
+                badge.remove();
+              }
+            });
 
-        if (role) {
-          if (!badge) {
-            badge = document.createElement("img");
-            badge.className = "badge";
-            span.appendChild(badge);
+            roleUnsubscribes.set(usernameText, unsubscribe);
           }
-          if (role === "Developer") badge.src = "/assets/badges/developer-badge.png";
-          if (role === "Admin") badge.src = "/assets/badges/admin-badge.png";
-          if (role === "Mod") badge.src = "/assets/badges/mod-badge.png";
-        } else if (badge) {
-          badge.remove();
         }
-      }
-    });
 
-    // Remove offline users
-    for (const [uname, item] of onlineUsersMap.entries()) {
-      if (!seenUsers.has(uname)) {
-        item.remove();
-        onlineUsersMap.delete(uname);
-      }
+        // Remove offline users
+        for (const [uname, userDiv] of onlineUsersMap.entries()) {
+          if (!seenUsers.has(uname)) {
+            userDiv.remove();
+            onlineUsersMap.delete(uname);
+
+            const unsub = roleUnsubscribes.get(uname);
+            if (unsub) unsub();
+            roleUnsubscribes.delete(uname);
+          }
+        }
+      });
     }
-  });
-}
 
   // --- Block/unblock ---
   function toggleBlock(name, btn) {
