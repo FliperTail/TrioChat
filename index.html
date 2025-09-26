@@ -2,7 +2,7 @@
   <html lang="en">
   <head>
   <meta charset="UTF-8">
-  <title>TrioChat-demo v15.10</title>
+  <title>TrioChat-demo v15.11</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -262,130 +262,211 @@
   let unsubscribeRooms = null;
   let currentStatus = "online";
   let onlineUsersInitialized = false;
+  const badgePathCache = new Map();
 
-    function updateOnlineUsers() {
-    if (onlineUsersInitialized) return;
-    onlineUsersInitialized = true;
-
-    const onlineRef = collection(db, "onlineUsers");
-
-    // Keep presence updated every 5s
-    setInterval(async () => {
-      const userRef = doc(db, "onlineUsers", username);
-      await setDoc(
-        userRef,
-        { username, lastSeen: serverTimestamp(), status: currentStatus }, // <-- NO role here
-        { merge: true }
-      );
-    }, 5000);
-
-    // Listen to online users
-    onSnapshot(onlineRef, async snapshot => {
-      const now = Date.now();
-      const seenUsers = new Set();
-
-      for (const docSnap of snapshot.docs) {
-        const onlineData = docSnap.data();
-        if (!onlineData?.username || onlineData.username === username) continue;
-
-        const lastSeen = onlineData.lastSeen && onlineData.lastSeen.toMillis ? onlineData.lastSeen.toMillis() : 0;
-        if (now - lastSeen > 15000) continue;
-        seenUsers.add(onlineData.username);
-
-        const usernameText = onlineData.username;
-        let userDiv = onlineUsersMap.get(usernameText);
-
-        // Fetch role from Users collection
-        const userDocRef = doc(db, "usernames", usernameText);
-        const userSnap = await getDoc(userDocRef);
-        const role = userSnap.exists() ? userSnap.data().role || null : null;
-
-        if (!userDiv) {
-          // Create user div
-          userDiv = document.createElement("div");
-          userDiv.className = "user-entry";
-
-          const usernameSpan = document.createElement("span");
-          usernameSpan.className = "user-name";
-          usernameSpan.textContent = usernameText;
-
-          if (role) {
-            const badge = document.createElement("img");
-            badge.className = "badge";
-            badge.src =
-              role === "Developer"
-                ? "/assets/badges/developer-badge.png"
-                : role === "Admin"
-                ? "/assets/badges/admin-badge.png"
-                : role === "Mod"
-                ? "/assets/badges/mod-badge.png"
-                : "";
-            usernameSpan.appendChild(badge);
-          }
-
-          userDiv.appendChild(usernameSpan);
-
-          const buttonsDiv = document.createElement("div");
-          buttonsDiv.className = "user-buttons";
-
-          const dmBtn = document.createElement("button");
-          dmBtn.className = "dm-btn";
-          dmBtn.textContent = "DM";
-          dmBtn.onclick = () => openDMModal(usernameText);
-
-          const blockBtn = document.createElement("button");
-          blockBtn.className = "block-btn";
-          blockBtn.textContent = blockedUsers.includes(usernameText) ? "Unignore" : "Ignore";
-          blockBtn.onclick = () => toggleBlock(usernameText, blockBtn);
-
-          buttonsDiv.append(dmBtn, blockBtn);
-          userDiv.appendChild(buttonsDiv);
-
-          usersDiv.appendChild(userDiv);
-          onlineUsersMap.set(usernameText, userDiv);
-
-          // Listen to role changes in Users collection
-          const unsubscribe = onSnapshot(userDocRef, userSnap => {
-            const userData = userSnap.data();
-            const role = userData?.role || null;
-            let badge = usernameSpan.querySelector(".badge");
-
-            if (role) {
-              if (!badge) {
-                badge = document.createElement("img");
-                badge.className = "badge";
-                usernameSpan.appendChild(badge);
-              }
-              badge.src =
-                role === "Developer"
-                  ? "/assets/badges/developer-badge.png"
-                  : role === "Admin"
-                  ? "/assets/badges/admin-badge.png"
-                  : role === "Mod"
-                  ? "/assets/badges/mod-badge.png"
-                  : "";
-            } else if (badge) {
-              badge.remove();
-            }
-          });
-
-          roleUnsubscribes.set(usernameText, unsubscribe);
-        }
-      }
-
-      // Remove offline users
-      for (const [uname, div] of onlineUsersMap.entries()) {
-        if (!seenUsers.has(uname)) {
-          div.remove();
-          onlineUsersMap.delete(uname);
-
-          const unsub = roleUnsubscribes.get(uname);
-          if (unsub) unsub();
-          roleUnsubscribes.delete(uname);
-        }
+  function testImageUrl(src, timeout = 5000) {
+    return new Promise(resolve => {
+      try {
+        const img = new Image();
+        let done = false;
+        const cleanup = (result) => { if (!done) { done = true; resolve(result); } };
+        img.onload = () => cleanup(true);
+        img.onerror = () => cleanup(false);
+        // safety timeout
+        const t = setTimeout(() => cleanup(false), timeout);
+        img.src = src;
+      } catch (e) {
+        resolve(false);
       }
     });
   }
+
+
+async function resolveBadgePathForRole(role) {
+  if (!role) return null;
+  if (badgePathCache.has(role)) return badgePathCache.get(role);
+
+  const filename = role === "Developer" ? "developer-badge.png"
+                 : role === "Admin" ? "admin-badge.png"
+                 : role === "Mod" ? "mod-badge.png"
+                 : null;
+
+  if (!filename) {
+    badgePathCache.set(role, null);
+    return null;
+  }
+
+  const candidates = [
+    `${window.location.origin}/assets/badges/${filename}`,
+    `/assets/badges/${filename}`,                         
+    `assets/badges/${filename}`,                          
+    `./assets/badges/${filename}`,                        
+    `../assets/badges/${filename}`                         
+  ];
+
+  for (const c of candidates) {
+    // quick log to help debugging
+    console.debug("Trying badge path:", c);
+    const ok = await testImageUrl(c, 3500);
+    if (ok) {
+      badgePathCache.set(role, c);
+      console.info("Resolved badge path for", role, "->", c);
+      return c;
+    }
+  }
+
+  console.warn("No valid badge file found for role:", role);
+  badgePathCache.set(role, null);
+  return null;
+}
+
+    function updateOnlineUsers() {
+      if (onlineUsersInitialized) return;
+      onlineUsersInitialized = true;
+
+      const onlineRef = collection(db, "onlineUsers");
+      setInterval(async () => {
+        try {
+          await setDoc(
+            doc(db, "onlineUsers", username),
+            { username, lastSeen: serverTimestamp(), status: currentStatus },
+            { merge: true }
+          );
+        } catch (err) {
+          console.error("Failed to update presence:", err);
+        }
+      }, 5000);
+
+      // Subscribe to onlineUsers collection
+      onSnapshot(onlineRef, async snapshot => {
+        const now = Date.now();
+        const seenDocIds = new Set();
+
+        // Use snapshot.docs so we can control ordering and await if needed
+        for (const docSnap of snapshot.docs) {
+          try {
+            const docId = docSnap.id;
+            const onlineData = docSnap.data();
+            if (!onlineData?.username) continue;
+            if (onlineData.username === username) continue; // skip self
+
+            // tolerant lastSeen read
+            const lastSeen = onlineData.lastSeen && onlineData.lastSeen.toMillis ? onlineData.lastSeen.toMillis() : 0;
+            if (now - lastSeen > 15000) continue; // stale
+            seenDocIds.add(docId);
+
+            // if we already rendered this docId, skip creation
+            if (onlineUsersMap.has(docId)) continue;
+
+            // create DOM
+            const userDiv = document.createElement("div");
+            userDiv.className = "user-entry";
+
+            const usernameSpan = document.createElement("span");
+            usernameSpan.className = "user-name";
+            usernameSpan.style.display = "inline-flex";
+            usernameSpan.style.alignItems = "center";
+            usernameSpan.style.gap = "6px";
+            usernameSpan.textContent = onlineData.username;
+
+            userDiv.appendChild(usernameSpan);
+
+            const buttonsDiv = document.createElement("div");
+            buttonsDiv.className = "user-buttons";
+
+            const dmBtn = document.createElement("button");
+            dmBtn.className = "dm-btn";
+            dmBtn.textContent = "DM";
+            dmBtn.onclick = () => openDMModal(onlineData.username);
+
+            const blockBtn = document.createElement("button");
+            blockBtn.className = "block-btn";
+            blockBtn.textContent = blockedUsers.includes(onlineData.username) ? "Unignore" : "Ignore";
+            blockBtn.onclick = () => toggleBlock(onlineData.username, blockBtn);
+
+            buttonsDiv.append(dmBtn, blockBtn);
+            userDiv.appendChild(buttonsDiv);
+
+            usersDiv.appendChild(userDiv);
+
+            // store in map keyed by docId
+            onlineUsersMap.set(docId, { div: userDiv, usernameSpan, username: onlineData.username });
+
+            // subscribe to that user's main doc for role changes (keyed by docId)
+            const userDocRef = doc(db, "usernames", onlineData.username);
+            const unsubscribeRole = onSnapshot(userDocRef, async userSnap => {
+              try {
+                const userData = userSnap.data();
+                const role = userData?.role || null;
+
+                let badge = usernameSpan.querySelector(".badge");
+                let fallback = usernameSpan.querySelector(".role-fallback");
+
+                if (role) {
+                  // try to resolve a real image path for this role (cached)
+                  const resolved = await resolveBadgePathForRole(role);
+                  if (resolved) {
+                    // ensure an <img> exists
+                    if (!badge) {
+                      badge = document.createElement("img");
+                      badge.className = "badge";
+                      badge.alt = role;
+                      // onerror logs the broken src and hides it
+                      badge.onerror = () => {
+                        console.error("Badge image failed to load:", badge.src);
+                        badge.style.display = "none";
+                      };
+                      badge.onload = () => { badge.style.display = ""; };
+                      usernameSpan.appendChild(badge);
+                    }
+                    // remove fallback if present
+                    if (fallback) { fallback.remove(); fallback = null; }
+                    badge.src = resolved;
+                  } else {
+                    // no file found; render emoji/text fallback
+                    if (badge) badge.remove();
+                    if (!fallback) {
+                      fallback = document.createElement("span");
+                      fallback.className = "role-fallback";
+                      fallback.style.marginLeft = "6px";
+                      fallback.textContent = role === "Developer" ? "🛠️" : role === "Admin" ? "⭐" : "🔧";
+                      usernameSpan.appendChild(fallback);
+                    } else {
+                      // update emoji if needed
+                      fallback.textContent = role === "Developer" ? "🛠️" : role === "Admin" ? "⭐" : "🔧";
+                    }
+                  }
+                } else {
+                  // no role — remove both if present
+                  if (badge) badge.remove();
+                  if (fallback) fallback.remove();
+                }
+              } catch (err) {
+                console.error("Error in role snapshot handler:", err);
+              }
+            });
+
+            roleUnsubscribes.set(docId, unsubscribeRole);
+          } catch (err) {
+            console.error("Error processing online doc:", err);
+          }
+        }
+
+        // cleanup offline users & their unsubscribes (use docId keys)
+        for (const [docId, entry] of onlineUsersMap.entries()) {
+          if (!seenDocIds.has(docId)) {
+            try {
+              entry.div.remove();
+            } catch (e) { /* ignore */ }
+            onlineUsersMap.delete(docId);
+
+            const unsub = roleUnsubscribes.get(docId);
+            if (unsub) unsub();
+            roleUnsubscribes.delete(docId);
+          }
+        }
+      });
+    }
 
   // --- Block/unblock ---
   function toggleBlock(name, btn) {
