@@ -2,7 +2,7 @@
   <html lang="en">
   <head>
   <meta charset="UTF-8">
-  <title>TrioChat-demo v15.5</title>
+  <title>TrioChat-demo v15.6</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -262,7 +262,7 @@
   let currentStatus = "online";
   let onlineUsersInitialized = false;
 
-  function updateOnlineUsers() {
+function updateOnlineUsers() {
   if (onlineUsersInitialized) return;
   onlineUsersInitialized = true;
 
@@ -271,46 +271,52 @@
   // Keep your presence updated every 5s
   setInterval(async () => {
     const userRef = doc(db, "onlineUsers", username);
-    const userSnap = await getDoc(userRef);
-    let role = "User";
-    if (userSnap.exists() && userSnap.data().role) {
-      role = userSnap.data().role; // keep DB role
-    } else {
-      role = localStorage.getItem("userRole") || "User";
-    }
-
     await setDoc(
       userRef,
-      { username, lastSeen: serverTimestamp(), status: currentStatus, role },
+      { username, lastSeen: serverTimestamp(), status: currentStatus },
       { merge: true }
     );
   }, 5000);
 
-  // Subscribe to the whole onlineUsers collection
+  // Listen for all online users
   onSnapshot(onlineRef, snapshot => {
     const now = Date.now();
     const seenUsers = new Set();
 
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      if (!data || !data.username) return;
-      if (data.username === username) return; // skip yourself
+    snapshot.forEach(async docSnap => {
+      const onlineData = docSnap.data();
+      if (!onlineData || !onlineData.username) return;
+      if (onlineData.username === username) return; // skip self
 
-      const lastSeen = data.lastSeen?.toMillis?.() || 0;
+      const lastSeen = onlineData.lastSeen?.toMillis?.() || 0;
       if (now - lastSeen > 15000) return;
+      seenUsers.add(onlineData.username);
 
-      seenUsers.add(data.username);
+      let userDiv = onlineUsersMap.get(onlineData.username);
+      const usernameText = onlineData.username;
 
-      let userDiv = onlineUsersMap.get(data.username);
+      // Fetch role from users collection
+      const userDocRef = doc(db, "usernames", usernameText);
+      const userSnap = await getDoc(userDocRef);
+      const role = userSnap.exists() ? userSnap.data().role || null : null;
 
       if (!userDiv) {
-        // create new userDiv
+        // Create new user div
         userDiv = document.createElement("div");
         userDiv.className = "user-entry";
 
         const usernameSpan = document.createElement("span");
         usernameSpan.className = "user-name";
-        usernameSpan.textContent = data.username;
+        usernameSpan.textContent = usernameText;
+
+        if (role) {
+          const badge = document.createElement("img");
+          badge.className = "badge";
+          if (role === "Developer") badge.src = "/assets/badges/developer-badge.png";
+          if (role === "Admin") badge.src = "/assets/badges/admin-badge.png";
+          if (role === "Mod") badge.src = "/assets/badges/mod-badge.png";
+          usernameSpan.appendChild(badge);
+        }
 
         userDiv.appendChild(usernameSpan);
 
@@ -320,55 +326,39 @@
         const dmBtn = document.createElement("button");
         dmBtn.className = "dm-btn";
         dmBtn.textContent = "DM";
-        dmBtn.onclick = () => openDMModal(data.username);
+        dmBtn.onclick = () => openDMModal(usernameText);
 
         const blockBtn = document.createElement("button");
         blockBtn.className = "block-btn";
-        blockBtn.textContent = blockedUsers.includes(data.username) ? "Unignore" : "Ignore";
-        blockBtn.onclick = () => toggleBlock(data.username, blockBtn);
+        blockBtn.textContent = blockedUsers.includes(usernameText) ? "Unignore" : "Ignore";
+        blockBtn.onclick = () => toggleBlock(usernameText, blockBtn);
 
         buttonsDiv.append(dmBtn, blockBtn);
         userDiv.appendChild(buttonsDiv);
 
         usersDiv.appendChild(userDiv);
-        onlineUsersMap.set(data.username, userDiv);
+        onlineUsersMap.set(usernameText, userDiv);
+      } else {
+        // Update badge if role changed
+        const span = userDiv.querySelector(".user-name");
+        let badge = span.querySelector(".badge");
 
-        // Subscribe to this user's doc for real-time role updates
-        const userDocRef = doc(db, "onlineUsers", data.username);
-        onSnapshot(userDocRef, userSnap => {
-          const userData = userSnap.data();
-          if (!userData) return;
-
-          const span = userDiv.querySelector(".user-name");
-          let badge = span.querySelector(".badge");
-
-          if (userData.role) {
-            if (!badge) {
-              badge = document.createElement("img");
-              badge.className = "badge";
-              span.appendChild(badge);
-            }
-            if (userData.role === "Developer") badge.src = "/assets/badges/developer.png";
-            if (userData.role === "Admin") badge.src = "/assets/badges/admin.png";
-            if (userData.role === "Mod") badge.src = "/assets/badges/mod.png";
-          } else if (badge) {
-            badge.remove();
+        if (role) {
+          if (!badge) {
+            badge = document.createElement("img");
+            badge.className = "badge";
+            span.appendChild(badge);
           }
-        });
-
-        // Initial badge render
-        if (data.role) {
-          const badge = document.createElement("img");
-          badge.className = "badge";
-          if (data.role === "Developer") badge.src = "/assets/badges/developer.png";
-          if (data.role === "Admin") badge.src = "/assets/badges/admin.png";
-          if (data.role === "Mod") badge.src = "/assets/badges/mod.png";
-          usernameSpan.appendChild(badge);
+          if (role === "Developer") badge.src = "/assets/badges/developer-badge.png";
+          if (role === "Admin") badge.src = "/assets/badges/admin-badge.png";
+          if (role === "Mod") badge.src = "/assets/badges/mod-badge.png";
+        } else if (badge) {
+          badge.remove();
         }
       }
     });
 
-    // Cleanup removed/offline users
+    // Remove offline users
     for (const [uname, item] of onlineUsersMap.entries()) {
       if (!seenUsers.has(uname)) {
         item.remove();
