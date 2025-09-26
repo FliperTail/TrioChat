@@ -2,7 +2,7 @@
   <html lang="en">
   <head>
   <meta charset="UTF-8">
-  <title>TrioChat-demo v16.1</title>
+  <title>TrioChat-demo v16.2</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -664,6 +664,7 @@ closeAdminPanelBtn.onclick = () => {
 
           const nameSpan = document.createElement("span");
           nameSpan.textContent = `${u} (${data.status || "unknown"})`;
+          nameSpan.style.color = "#000";
 
           const btnsDiv = document.createElement("div");
           btnsDiv.style.display = "flex";
@@ -688,14 +689,24 @@ closeAdminPanelBtn.onclick = () => {
             alert(`${u} has been banned.`);
           };
 
-          // Mute button
-          const muteBtn = document.createElement("button");
-          muteBtn.textContent = "Mute";
-          muteBtn.style.background = "#28a745";
-          muteBtn.onclick = async () => {
-            await setDoc(doc(db, "mutedUsers", u), { muted: true });
-            alert(`${u} has been muted.`);
-          };
+            const muteRef = doc(db, "mutedUsers", u);
+            const muteSnap = getDoc(muteRef);
+            let isMuted = muteSnap.exists();
+
+            const muteBtn = document.createElement("button");
+            muteBtn.textContent = isMuted ? "Unmute" : "Mute";
+            muteBtn.style.background = isMuted ? "#6c757d" : "#28a745"; // gray for unmute, green for mute
+
+            muteBtn.onclick = async () => {
+              if (isMuted) {
+                await deleteDoc(muteRef);
+                alert(`${u} has been unmuted.`);
+              } else {
+                await setDoc(muteRef, { muted: true });
+                alert(`${u} has been muted.`);
+              }
+              loadAdminUsers(); // refresh buttons
+            };
 
           btnsDiv.append(kickBtn, banBtn, muteBtn);
           div.append(nameSpan, btnsDiv);
