@@ -2,7 +2,7 @@
   <html lang="en">
   <head>
   <meta charset="UTF-8">
-  <title>TrioChat-demo v16.10</title>
+  <title>TrioChat-demo v16.11</title>
   <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
@@ -224,8 +224,9 @@
     <div id="warnings-view" style="max-height:400px; overflow-y:auto; display:none;"></div>
   </div>
 
-<div id="admin-users-view"></div>
-<div id="admin-warnings-view" style="display:none;"></div>
+  <div id="admin-users-view"></div>
+  <div id="admin-warnings-view" style="display:none;"></div>
+  <div id="usersTab"></div>
 
   <script type="module">
   let cachedMessages = [];
@@ -686,7 +687,7 @@ async function resolveBadgePathForRole(role) {
     loadAllWarnings();
   };
 
-  async function loadUsers() {
+  async function loadAdminUsers() {
     usersTab.innerHTML = ""; // clear only the users tab
     const usersSnapshot = await getDocs(collection(db, "usernames"));
 
@@ -709,7 +710,7 @@ async function resolveBadgePathForRole(role) {
       btnsDiv.style.display = "flex";
       btnsDiv.style.gap = "5px";
 
-      // Warn button
+      // WARN BUTTON
       const warnBtn = document.createElement("button");
       warnBtn.textContent = "Warn";
       warnBtn.onclick = async () => {
@@ -724,13 +725,11 @@ async function resolveBadgePathForRole(role) {
         alert(`${u} has been warned: ${reason}`);
       };
 
-      // Ban button
+      // BAN BUTTON
       const banBtn = document.createElement("button");
-
       const banRef = doc(db, "bannedUsers", u);
       const banSnap = await getDoc(banRef);
       let isBanned = banSnap.exists() && (banSnap.data().expiresAtMillis > Date.now());
-
       banBtn.textContent = isBanned ? "Unban" : "Ban";
       banBtn.style.background = isBanned ? "#6c757d" : "#dc3545";
 
@@ -744,17 +743,9 @@ async function resolveBadgePathForRole(role) {
         } else {
           const hours = parseFloat(prompt(`Enter ban duration in hours for ${u}:`));
           if (!hours || hours <= 0) return alert("Invalid duration.");
-
           const expiresAt = new Date(Date.now() + hours * 3600 * 1000);
-
-          await setDoc(banRef, {
-            banned: true,
-            expiresAtMillis: expiresAt.getTime(),
-          });
-
-          // Remove user from online users immediately
-          await deleteDoc(doc(db, "onlineUsers", u));
-
+          await setDoc(banRef, { banned: true, expiresAtMillis: expiresAt.getTime() });
+          await deleteDoc(doc(db, "onlineUsers", u)); // remove online immediately
           alert(`${u} has been banned for ${hours} hour(s).`);
           isBanned = true;
           banBtn.textContent = "Unban";
@@ -762,13 +753,11 @@ async function resolveBadgePathForRole(role) {
         }
       };
 
-      // Mute button
+      // MUTE BUTTON
       const muteBtn = document.createElement("button");
-
       const muteRef = doc(db, "mutedUsers", u);
       const muteSnap = await getDoc(muteRef);
       let isMuted = muteSnap.exists();
-
       muteBtn.textContent = isMuted ? "Unmute" : "Mute";
       muteBtn.style.background = isMuted ? "#6c757d" : "#28a745";
 
