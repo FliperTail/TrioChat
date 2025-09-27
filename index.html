@@ -246,6 +246,7 @@
 
   <audio id="notif-sound" src="assets/sounds/notify.mp3" preload="auto"></audio>
   <script type="module">
+  import { collection, query, where, getDocs } from "firebase/firestore";
   let cachedMessages = [];
   let unsubscribeMessages = null;
   let lastTimestamp = Date.now();
