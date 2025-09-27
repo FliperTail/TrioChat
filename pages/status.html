@@ -1,11 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrioChat Status</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrioChat Status</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .status-box {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 10px auto;
+      width: 300px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+    .status {
+      font-weight: bold;
+    }
+    .ok {
+      color: green;
+    }
+    .fail {
+      color: red;
+    }
+  </style>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js"></script>
 </head>
 <body>
-    
+  <h1>🚦 TrioChat System Status</h1>
+
+  <div class="status-box">
+    <p>Firebase: <span id="firebase-status" class="status">Checking...</span></p>
+  </div>
+
+  <div class="status-box">
+    <p>Realtime Chat: <span id="chat-status" class="status">Checking...</span></p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+        apiKey: "AIzaSyCH3EXgZ9FN_t_tEW10uR5YmHiX_pabzew",
+        authDomain: "triochat-cbd25.firebaseapp.com",
+        projectId: "triochat-cbd25",
+        storageBucket: "triochat-cbd25.firebasestorage.app",
+        messagingSenderId: "240591787712",
+        appId: "1:240591787712:web:7486c19c654a173eb4bf25",
+        measurementId: "G-TFXZ6HSSHN"
+        };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function checkFirebase() {
+      try {
+        // Try reading a small doc (could be a "status" doc in Firestore)
+        const testDoc = await getDoc(doc(db, "status", "health"));
+        document.getElementById("firebase-status").textContent = "Online ✅";
+        document.getElementById("firebase-status").classList.add("ok");
+        
+        if (testDoc.exists()) {
+          document.getElementById("chat-status").textContent = testDoc.data().chat || "Unknown";
+          document.getElementById("chat-status").classList.add("ok");
+        } else {
+          document.getElementById("chat-status").textContent = "No data ⚠️";
+          document.getElementById("chat-status").classList.add("fail");
+        }
+      } catch (e) {
+        console.error("Firebase check failed:", e);
+        document.getElementById("firebase-status").textContent = "Offline ❌";
+        document.getElementById("firebase-status").classList.add("fail");
+        document.getElementById("chat-status").textContent = "Unavailable ❌";
+        document.getElementById("chat-status").classList.add("fail");
+      }
+    }
+
+    checkFirebase();
+  </script>
 </body>
 </html>
