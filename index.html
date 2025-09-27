@@ -744,26 +744,17 @@ async function resolveBadgePathForRole(role) {
   const adminUserList = document.getElementById("admin-user-list");
   const closeAdminPanelBtn = document.getElementById("close-admin-panel");
 
-  async function checkAdminPanelAccess(username) {
+  async function checkAdminPanelAccess(userId) {
     try {
-      const q = query(
-        collection(db, "usernames"),
-        where("name", "==", username)
-      );
-      const querySnapshot = await getDocs(q);
+      const userDoc = await getDoc(doc(db, "usernames", userId));
+      if (!userDoc.exists()) return;
 
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        const role = userDoc.data().role;
-
-        if (["Founder", "Admin", "Mod"].includes(role)) {
-          adminPanelBtn.style.display = "block";
-        }
-      } else {
-        console.warn("No user found with that username");
+      const role = userDoc.data().role;
+      if (role === "Founder" || role === "Admin" || role === "Mod") {
+        adminPanelBtn.style.display = "block";
       }
-    } catch (error) {
-      console.error("Error checking admin panel access:", error);
+    } catch (err) {
+      console.error("Error checking admin panel access:", err);
     }
   }
 
