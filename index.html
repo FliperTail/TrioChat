@@ -7,7 +7,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrioChat-demo v17.5</title>
+  <title>TrioChat-demo v17.4</title>
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
   body.dark-theme { background:#1e1e1e; color:white; }
@@ -526,44 +526,84 @@ async function resolveBadgePathForRole(role) {
   // --- DM handling ---
   const dmContainer = document.getElementById("dm-container");
   const dmWindows = new Map();
-    function openDMModal(otherUser) {
-      const roomName = [username, otherUser].sort().join("_DM_");
-      const messagesRef = collection(db, "messages");
+  function openDMModal(otherUser) {
+    if (blockedUsers.includes(otherUser)) {
+      alert("You have ignored this user. You cannot DM them.");
+      return;
+    }
+    if (dmWindows.has(otherUser)) return;
 
-      // Query only messages in this DM room
-      const q = query(messagesRef, where("room", "==", roomName), orderBy("timestamp"));
+    const dmWindow = document.createElement("div");
+    dmWindow.classList.add("dm-window");
 
-      // Load existing messages
-      getDocs(q).then(snapshot => {
-        chatBox.innerHTML = ""; // clear chat box
-        snapshot.forEach(docSnap => {
-          const data = docSnap.data();
-          if (blockedUsers.includes(data.username)) return;
+    const header = document.createElement("div");
+    header.classList.add("dm-header");
+    header.textContent = otherUser;
 
-          const msg = document.createElement("div");
-          msg.textContent = `${data.username}: ${data.text}`;
-          chatBox.appendChild(msg);
-        });
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "X";
+    closeBtn.style.background = "transparent";
+    closeBtn.style.border = "none";
+    closeBtn.style.color = "white";
+    closeBtn.style.fontSize = "16px";
+    closeBtn.style.cursor = "pointer";
+    closeBtn.onclick = () => {
+      unsubscribeDM();
+      dmWindow.remove();
+      dmWindows.delete(otherUser);
+    };
+    header.appendChild(closeBtn);
+    dmWindow.appendChild(header);
 
-    // Listen for new messages
-    const unsubscribeDM = onSnapshot(q, snapshot => {
-      snapshot.docChanges().forEach(change => {
-        if (change.type !== "added") return;
+    const chatBox = document.createElement("div");
+    chatBox.classList.add("dm-chat");
+    dmWindow.appendChild(chatBox);
 
-        const data = change.doc.data();
+    const form = document.createElement("form");
+    form.classList.add("dm-form");
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Type a message..";
+    const sendBtn = document.createElement("button");
+    sendBtn.textContent = "Send";
+    sendBtn.type = "submit";
+    form.appendChild(input);
+    form.appendChild(sendBtn);
+    dmWindow.appendChild(form);
+
+    dmContainer.appendChild(dmWindow);
+    dmWindows.set(otherUser, dmWindow);
+
+    const roomName = [username, otherUser].sort().join("_DM_");
+    let unsubscribeDM = null;
+
+    const messagesRef = collection(db, "messages");
+    const q = query(messagesRef, orderBy("timestamp"));
+    unsubscribeDM = onSnapshot(q, snapshot => {
+      chatBox.innerHTML = "";
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.room !== roomName) return;
         if (blockedUsers.includes(data.username)) return;
 
         const msg = document.createElement("div");
         msg.textContent = `${data.username}: ${data.text}`;
         chatBox.appendChild(msg);
-        chatBox.scrollTop = chatBox.scrollHeight;
 
-        if (data.username !== username) {
+        if (data.username !== username && document.hidden) {
           notifyUser(`DM from ${data.username}`, data.text);
         }
       });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      if (blockedUsers.includes(otherUser)) { alert("You have ignored this user. Cannot send DM."); return; }
+      await addDoc(collection(db,"messages"), { username, text, room: roomName, timestamp: serverTimestamp() });
     });
   }
 
