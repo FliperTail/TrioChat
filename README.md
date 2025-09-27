@@ -19,6 +19,7 @@ Everything here will most likely **change** soon enough! If you want to help dev
 - Purposely making rooms/users/DMs to fill storage is not allowed
 - No account stealing
 - Use your brain have common sense
+  
 Rules will most likely change!
 
 ### Information
