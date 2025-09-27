@@ -246,7 +246,6 @@
 
   <audio id="notif-sound" src="assets/sounds/notify.mp3" preload="auto"></audio>
   <script type="module">
-  import { collection, query, where, getDocs } from "firebase/firestore";
   let cachedMessages = [];
   let unsubscribeMessages = null;
   let lastTimestamp = Date.now();
@@ -257,7 +256,7 @@
   }
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-  import { getFirestore, collection, doc, getDoc, setDoc, addDoc, getDocs, serverTimestamp, query, orderBy, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+  import { getFirestore, collection, doc, getDoc, setDoc, addDoc, getDocs, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCH3EXgZ9FN_t_tEW10uR5YmHiX_pabzew",
