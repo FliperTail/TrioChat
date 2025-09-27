@@ -7,7 +7,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrioChat-demo v16.23</title>
+  <title>TrioChat-demo v17</title>
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
   body.dark-theme { background:#1e1e1e; color:white; }
@@ -1029,19 +1029,8 @@ async function resolveBadgePathForRole(role) {
         msg.textContent = `${data.username}: ${data.text}`;
         chatBox.appendChild(msg);
       });
-      chatBox.scrollTop = chatBox.scrollHeight;
-
-      const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-      if (lastDoc) {
-        const lastMsg = lastDoc.data();
-        if (lastMsg.username !== username) {
-          document.getElementById("notif-sound").play().catch(e => {
-            console.warn("Notification sound blocked by browser:", e);
-          });
-        }
-      }
-    });
-  }
+      chatBox.scrollTop = chatBox.scrollHeight;});
+    }
 
   function renderMessages(){
     chatBox.innerHTML="";
