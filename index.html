@@ -7,7 +7,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrioChat-demo v16.22</title>
+  <title>TrioChat-demo v16.23</title>
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
   body.dark-theme { background:#1e1e1e; color:white; }
@@ -243,10 +243,6 @@
     <div id="users-view" style="max-height:400px; overflow-y:auto;"></div>
     <div id="warnings-view" style="max-height:400px; overflow-y:auto; display:none;"></div>
   </div>
-
-  <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 10000;"></div>
-
-  <div id="notifications-panel" style="position:fixed;top:10px;right:10px;width:300px;height:400px;overflow:auto;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.2);display:none;"></div>
 
   <audio id="notif-sound" src="assets/sounds/notify.mp3" preload="auto"></audio>
   <script type="module">
@@ -1208,53 +1204,13 @@ async function resolveBadgePathForRole(role) {
     location.reload();
   };
 
-  function showToast(message, duration=4000) {
-    const container = document.getElementById("toast-container");
-    const toast = document.createElement("div");
-    toast.textContent = message;
-    toast.style.background = "#007bff";
-    toast.style.color = "white";
-    toast.style.padding = "8px 12px";
-    toast.style.borderRadius = "5px";
-    toast.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), duration);
-  }
-
-  function notify(title, body) {
-    if (Notification.permission === "granted") {
-      new Notification(title, { body });
-    } else if (Notification.permission !== "denied") {
-      Notification.requestPermission().then(p => {
-        if (p === "granted") new Notification(title, { body });
-      });
+  document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("status-page-btn");
+    if (btn) {
+      btn.onclick = () => window.location.href = "status.html";
     }
-  }
-
-  if(data.text.includes("@"+username)){
-    showToast(`You were mentioned by ${data.username}`);
-    notify("Mention", `${data.username} mentioned you`);
-  }
-
-  let unreadCounts = {};
-  function incrementUnread(roomName) {
-    unreadCounts[roomName] = (unreadCounts[roomName] || 0) + 1;
-    updateRoomBadge(roomName);
-  }
-
-  function updateRoomBadge(roomName) {
-    const btn = document.querySelector(`.room-btn[data-room='${roomName}']`);
-    if(btn){
-      btn.textContent = roomName + (unreadCounts[roomName] ? ` (${unreadCounts[roomName]})` : '');
-    }
-  }
+  });
   </script>
-  <script>
-    document.getElementById("status-page-btn").onclick = () => {
-      window.location.href = "status.html"; // replace with your status page link
-    };
-  </script>
-  <button id="status-page-btn">Status Page</button>
   </body>
   </html>
     <script>console.log("Website has fully loaded!")</script>
