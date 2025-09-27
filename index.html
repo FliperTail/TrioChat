@@ -746,11 +746,21 @@ async function resolveBadgePathForRole(role) {
 
   async function checkAdminPanelAccess(userId) {
     try {
-      const userDoc = await getDoc(doc(db, "usernames", userId));
-      if (!userDoc.exists()) return;
+      const userDocRef = doc(db, "usernames", userId);
+      const userDoc = await getDoc(userDocRef);
 
-      const role = userDoc.data().role;
-      if (role === "Founder" || role === "Admin" || role === "Mod") {
+      if (!userDoc.exists()) {
+        console.warn("User document does not exist");
+        return;
+      }
+
+      const role = userDoc.data()?.role;
+      if (!role) {
+        console.warn("Role is undefined for user", userId);
+        return;
+      }
+
+      if (["Founder", "Admin", "Mod"].includes(role)) {
         adminPanelBtn.style.display = "block";
       }
     } catch (err) {
