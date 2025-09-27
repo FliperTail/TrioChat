@@ -170,15 +170,6 @@
     transition: background 0.3s, color 0.3s;
   }
   </style>
-  <!-- Firebase App (core SDK) -->
-  <script src="https://www.gstatic.com/firebasejs/11.26.1/firebase-app.js"></script>
-
-  <!-- Firebase Auth -->
-  <script src="https://www.gstatic.com/firebasejs/11.26.1/firebase-auth.js"></script>
-
-  <!-- Firebase Firestore -->
-  <script src="https://www.gstatic.com/firebasejs/11.26.1/firebase-firestore.js"></script>
-
   </head>
   <body>
 
@@ -268,13 +259,6 @@
 
   <audio id="notif-sound" src="assets/sounds/notify.mp3" preload="auto"></audio>
   <script type="module">
-    firebase.initializeApp(firebaseConfig);
-
-    // Sign in anonymously
-    firebase.auth().signInAnonymously().catch((error) => {
-      console.error(error.code, error.message);
-    });
-
   let cachedMessages = [];
   let unsubscribeMessages = null;
   let lastTimestamp = Date.now();
@@ -1308,7 +1292,7 @@
   // Update if user changes system theme
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <div id="version-label">BETA v1.0.1</div>
+  <div id="version-label">BETA v1.0.0</div>
   <button id="status-page-btn">Status Page</button>
   </body>
   </html>
