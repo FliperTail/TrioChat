@@ -1312,9 +1312,9 @@ async function resolveBadgePathForRole(role) {
   kofiwidget2.init('Buy me a coffee', '#ef73f5', 'A0A61IAEQ5');
   kofiwidget2.draw();
 
-  // Wait a bit for the widget to render, then move it
-  setTimeout(() => {
-      const widget = document.querySelector('#kofiwidget-wrapper');
+  // Wait for the widget to render, then move it
+  const moveKofiWidget = () => {
+      const widget = document.querySelector('div.kofiwidget'); // outermost div created by Ko-fi
       if (widget) {
           widget.style.position = 'fixed';
           widget.style.top = '10px';
@@ -1322,8 +1322,12 @@ async function resolveBadgePathForRole(role) {
           widget.style.bottom = 'auto';
           widget.style.right = 'auto';
           widget.style.zIndex = '9999';
+      } else {
+          // Retry if widget not yet created
+          setTimeout(moveKofiWidget, 100);
       }
-  }, 500); // 500ms delay ensures the widget exists
+  };
+  moveKofiWidget();
   </script>
   <div id="version-label">DEMO v17.6</div>
   <button id="status-page-btn">Status Page</button>
