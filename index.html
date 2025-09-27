@@ -744,45 +744,38 @@ async function resolveBadgePathForRole(role) {
   const adminUserList = document.getElementById("admin-user-list");
   const closeAdminPanelBtn = document.getElementById("close-admin-panel");
 
-  async function checkAdminPanelAccess(username) {
+  async function checkAdminPanelAccess() {
     try {
-      if (!username) {
-        console.warn("No username provided");
-        adminPanelBtn.style.display = "none";
-        return;
-      }
+        const user = firebase.auth().currentUser;
 
-      const userDocRef = doc(db, "usernames", username);
-      const userSnap = await getDoc(userDocRef);
+        if (!user) {
+            console.log("No user is currently logged in.");
+            return false;
+        }
 
-      if (!userSnap.exists()) {
-        console.warn(`User "${username}" does not exist`);
-        adminPanelBtn.style.display = "none";
-        return;
-      }
+        // Fetch all usernames
+        const usernamesSnapshot = await firebase.firestore().collection("usernames").get();
 
-      const role = userSnap.data()?.Role;
+        let hasAccess = false;
 
-      if (!role) {
-        console.warn(`User "${username}" has no role`);
-        adminPanelBtn.style.display = "none";
-        return;
-      }
+        usernamesSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data && data.Role) {
+                const allowedRoles = ["Founder", "Admin", "Mod"];
+                if (allowedRoles.includes(data.Role)) {
+                    hasAccess = true;
+                }
+            }
+        });
 
-      // Roles allowed to access admin panel
-      const allowedRoles = ["Founder", "Admin", "Mod"];
-
-      if (allowedRoles.includes(role)) {
-        adminPanelBtn.style.display = "block";
-      } else {
-        adminPanelBtn.style.display = "none";
-      }
+        console.log("Admin panel access:", hasAccess);
+        return hasAccess;
 
     } catch (error) {
-      console.error("Error checking admin panel access:", error);
-      adminPanelBtn.style.display = "none"; // fail-safe
+        console.error("Error checking admin panel access:", error);
+        return false;
     }
-  }
+}
 
   adminPanelBtn.onclick = () => {
     adminPanelPopup.style.display = "block";
