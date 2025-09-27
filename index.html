@@ -1307,28 +1307,6 @@ async function resolveBadgePathForRole(role) {
   // Update if user changes system theme
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
-  <script type='text/javascript'>
-  kofiwidget2.init('Buy me a coffee', '#ef73f5', 'A0A61IAEQ5');
-  kofiwidget2.draw();
-
-  // Wait for the widget to render, then move it
-  const moveKofiWidget = () => {
-      const widget = document.querySelector('div.kofiwidget'); // outermost div created by Ko-fi
-      if (widget) {
-          widget.style.position = 'fixed';
-          widget.style.top = '10px';
-          widget.style.left = '10px';
-          widget.style.bottom = 'auto';
-          widget.style.right = 'auto';
-          widget.style.zIndex = '9999';
-      } else {
-          // Retry if widget not yet created
-          setTimeout(moveKofiWidget, 100);
-      }
-  };
-  moveKofiWidget();
-  </script>
   <div id="version-label">DEMO v17.6</div>
   <button id="status-page-btn">Status Page</button>
   </body>
