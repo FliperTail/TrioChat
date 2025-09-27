@@ -7,7 +7,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrioChat-demo v17.1</title>
+  <title>TrioChat-demo v17.2</title>
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
   body.dark-theme { background:#1e1e1e; color:white; }
@@ -248,6 +248,7 @@
   <script type="module">
   let cachedMessages = [];
   let unsubscribeMessages = null;
+  let lastTimestamp = Date.now();
 
   // Apply saved dark mode
   if (localStorage.getItem("darkMode") === "true") {
@@ -611,25 +612,35 @@ async function resolveBadgePathForRole(role) {
   const savedUsername = localStorage.getItem("triochat_username");
   if (savedUsername) checkLogin(savedUsername);
 
-  registerBtn.addEventListener("click", async ()=>{
-    const name = usernameInput.value.trim();
-    if(!name) return;
+    registerBtn.addEventListener("click", async ()=>{
+      const name = usernameInput.value.trim();
+      if(!name) return;
 
-    try {
-      await checkBan(name);
-    } catch (e) {
-      return; // stop login if banned
-    }
+      try {
+        await checkBan(name);
+      } catch (e) {
+        return; // stop login if banned
+      }
 
-    const usernameDoc = doc(db,"usernames",name);
-    const docSnap = await getDoc(usernameDoc);
-    if(docSnap.exists()){ 
-      errorDiv.textContent="Username is already taken."; 
-    } else {
-      await setDoc(usernameDoc,{created:serverTimestamp()});
-      localStorage.setItem("triochat_username",name);
-      checkLogin(name);
-    }
+      const usernameDoc = doc(db,"usernames",name);
+      const docSnap = await getDoc(usernameDoc);
+      if(docSnap.exists()){ 
+        errorDiv.textContent="Username is already taken."; 
+      } else {
+        await setDoc(usernameDoc,{created:serverTimestamp()});
+        
+        // --- generate login key automatically ---
+        const key = Math.random().toString(36).substring(2,10).toUpperCase();
+        const hashedKey = await hashKey(key);
+        await setDoc(doc(db, "loginKeys", name), {
+          key: hashedKey,
+          timestamp: serverTimestamp()
+        });
+        alert("Your login key is: " + key);
+
+        localStorage.setItem("triochat_username",name);
+        checkLogin(name);
+      }
   });
 
   loginKeyBtn.addEventListener("click", async ()=>{
@@ -1048,9 +1059,10 @@ async function resolveBadgePathForRole(role) {
     if (unsubscribeMessages) unsubscribeMessages();
 
     unsubscribeMessages = onSnapshot(q, snapshot => {
-      chatBox.innerHTML = "";
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
+      snapshot.docChanges().forEach(change => {
+        if (change.type !== "added") return; // only new messages
+
+        const data = change.doc.data();
         if (data.room !== room) return;
         if (blockedUsers.includes(data.username)) return;
 
@@ -1059,15 +1071,18 @@ async function resolveBadgePathForRole(role) {
         msg.textContent = `${data.username}: ${data.text}`;
         chatBox.appendChild(msg);
 
-        // Notify if the message is not from self and the window is not focused
-        if (data.username !== username && document.hidden) {
+        // Only notify for truly new messages
+        const msgTime = data.timestamp?.toMillis?.() || Date.now();
+        if (data.username !== username && msgTime > lastTimestamp && document.hidden) {
           notifyUser(`New message from ${data.username}`, data.text);
         }
+
+        if (msgTime > lastTimestamp) lastTimestamp = msgTime;
       });
+
       chatBox.scrollTop = chatBox.scrollHeight;
     });
   }
-
 
   function renderMessages(){
     chatBox.innerHTML="";
