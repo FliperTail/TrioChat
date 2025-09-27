@@ -7,7 +7,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrioChat-demo v17.2</title>
+  <title>TrioChat-demo v17.3</title>
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
   body.dark-theme { background:#1e1e1e; color:white; }
@@ -744,8 +744,8 @@ async function resolveBadgePathForRole(role) {
   const adminUserList = document.getElementById("admin-user-list");
   const closeAdminPanelBtn = document.getElementById("close-admin-panel");
 
-  async function checkAdminPanelAccess(username) {
-    const userDoc = await getDoc(doc(db, "usernames", username));
+  async function checkAdminPanelAccess() {
+    const userDoc = await getDoc(doc(db, "usernames"));
     const role = userDoc.data()?.role || null;
     if (role === "Founder" || role === "Admin" || role === "Mod") {
       adminPanelBtn.style.display = "block";
