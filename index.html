@@ -8,7 +8,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TrioChat BETA</title>
-  <link rel="icon" href="favicon.ico" type="assets/icons/favicon.ico">
+  <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
   body.dark-theme { background:#1e1e1e; color:white; }
@@ -259,6 +259,13 @@
 
   <audio id="notif-sound" src="assets/sounds/notify.mp3" preload="auto"></audio>
   <script type="module">
+    firebase.initializeApp(firebaseConfig);
+
+    // Sign in anonymously
+    firebase.auth().signInAnonymously().catch((error) => {
+      console.error(error.code, error.message);
+    });
+
   let cachedMessages = [];
   let unsubscribeMessages = null;
   let lastTimestamp = Date.now();
@@ -336,19 +343,19 @@
   }
 
 
-async function resolveBadgePathForRole(role) {
-  if (!role) return null;
-  if (badgePathCache.has(role)) return badgePathCache.get(role);
+  async function resolveBadgePathForRole(role) {
+    if (!role) return null;
+    if (badgePathCache.has(role)) return badgePathCache.get(role);
 
-  const filename = role === "Founder" ? "founder-badge.png"
-                 : role === "Admin" ? "admin-badge.png"
-                 : role === "Mod" ? "mod-badge.png"
-                 : role === "Tester" ? "tester-badge.png"
-                 : null;
+    const filename = role === "Founder" ? "founder-badge.png"
+                  : role === "Admin" ? "admin-badge.png"
+                  : role === "Mod" ? "mod-badge.png"
+                  : role === "Tester" ? "tester-badge.png"
+                  : null;
 
-  if (!filename) {
-    badgePathCache.set(role, null);
-    return null;
+    if (!filename) {
+      badgePathCache.set(role, null);
+      return null;
   }
 
   const candidates = [
@@ -1292,7 +1299,7 @@ async function resolveBadgePathForRole(role) {
   // Update if user changes system theme
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <div id="version-label">BETA v1.0.0</div>
+  <div id="version-label">BETA v1.0.1</div>
   <button id="status-page-btn">Status Page</button>
   </body>
   </html>
