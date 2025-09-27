@@ -746,30 +746,23 @@ async function resolveBadgePathForRole(role) {
 
   async function checkAdminPanelAccess() {
     try {
-      const snapshot = await getDocs(collection(db, "usernames"));
+      const userDoc = await getDoc(doc(db, "usernames", username));
       const allowedRoles = ["Founder", "Admin", "Mod"];
-      let hasAccess = false;
+      
+      if (!userDoc.exists()) return false;
 
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data && data.role && allowedRoles.includes(data.role)) {
-          hasAccess = true;
-        }
-      });
+      const data = userDoc.data();
+      const role = data?.role || data?.Role; // adjust key if needed
 
+      const hasAccess = allowedRoles.includes(role);
       console.log("Admin panel access:", hasAccess);
-
-      if (hasAccess) {
-        adminPanelBtn.style.display = "block"; // actually show the button
-      } else {
-        adminPanelBtn.style.display = "none";
-      }
+      
+      // Show or hide button
+      adminPanelBtn.style.display = hasAccess ? "block" : "none";
 
       return hasAccess;
-
     } catch (error) {
       console.error("Error checking admin panel access:", error);
-      adminPanelBtn.style.display = "none";
       return false;
     }
   }
