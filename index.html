@@ -7,7 +7,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrioChat-demo v17.4</title>
+  <title>TrioChat-demo v17.5</title>
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
   body.dark-theme { background:#1e1e1e; color:white; }
@@ -155,6 +155,19 @@
   }
   #status-page-btn:hover {
     background: #0056b3;
+  }
+  #version-label {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-family: Arial, sans-serif;
+  z-index: 9999;
+  pointer-events: none;
   }
   </style>
   </head>
@@ -1263,10 +1276,12 @@ async function resolveBadgePathForRole(role) {
   document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("status-page-btn");
     if (btn) {
-      btn.onclick = () => window.location.href = "status.html";
+      btn.onclick = () => window.location.href = "pages/status.html";
     }
   });
   </script>
+  <div id="version-label">DEMO v17.5</div>
+  <button id="status-page-btn">Status Page</button>
   </body>
   </html>
     <script>console.log("Website has fully loaded!")</script>
