@@ -744,27 +744,43 @@ async function resolveBadgePathForRole(role) {
   const adminUserList = document.getElementById("admin-user-list");
   const closeAdminPanelBtn = document.getElementById("close-admin-panel");
 
-  async function checkAdminPanelAccess(userId) {
+  async function checkAdminPanelAccess(username) {
     try {
-      const userDocRef = doc(db, "usernames", userId);
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        console.warn("User document does not exist");
+      if (!username) {
+        console.warn("No username provided");
+        adminPanelBtn.style.display = "none";
         return;
       }
 
-      const role = userDoc.data()?.role;
+      const userDocRef = doc(db, "usernames", username);
+      const userSnap = await getDoc(userDocRef);
+
+      if (!userSnap.exists()) {
+        console.warn(`User "${username}" does not exist`);
+        adminPanelBtn.style.display = "none";
+        return;
+      }
+
+      const role = userSnap.data()?.Role;
+
       if (!role) {
-        console.warn("Role is undefined for user", userId);
+        console.warn(`User "${username}" has no role`);
+        adminPanelBtn.style.display = "none";
         return;
       }
 
-      if (["Founder", "Admin", "Mod"].includes(role)) {
+      // Roles allowed to access admin panel
+      const allowedRoles = ["Founder", "Admin", "Mod"];
+
+      if (allowedRoles.includes(role)) {
         adminPanelBtn.style.display = "block";
+      } else {
+        adminPanelBtn.style.display = "none";
       }
-    } catch (err) {
-      console.error("Error checking admin panel access:", err);
+
+    } catch (error) {
+      console.error("Error checking admin panel access:", error);
+      adminPanelBtn.style.display = "none"; // fail-safe
     }
   }
 
