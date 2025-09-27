@@ -3,7 +3,7 @@
 # TrioChat DEMO
 > A new chatting platform with rooms to connect to new people! This entire project is open source!
 
-TrioChat is a open source chatting platform purely ran off of HTML. Using Firebase to store messages and other content. With a downloadable .exe file allowing you to have a client.
+TrioChat is a open source chatting platform purely ran off of HTML and JS. Using Firebase to store messages and other content. With a downloadable .exe file allowing you to have a client.
 This project is still in development and is right now in DEMO. Beta version will be out soon around the 1st of October which is the plan. Right now you can use the Issues tab to report bugs or suggest new things for me to add.
 Everything here will most likely **change** soon enough! If you want to help develop with this project the best way is just write an actual detailed suggestion! 
 
