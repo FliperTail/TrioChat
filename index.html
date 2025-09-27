@@ -746,26 +746,31 @@ async function resolveBadgePathForRole(role) {
 
   async function checkAdminPanelAccess() {
     try {
-        // Get all documents in the usernames collection
-        const snapshot = await firebase.firestore().collection("usernames").get();
+      const snapshot = await getDocs(collection(db, "usernames"));
+      const allowedRoles = ["Founder", "Admin", "Mod"];
+      let hasAccess = false;
 
-        const allowedRoles = ["Founder", "Admin", "Mod"];
-        let hasAccess = false;
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data && data.role && allowedRoles.includes(data.role)) {
+          hasAccess = true;
+        }
+      });
 
-        // Loop through all documents
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data && data.Role && allowedRoles.includes(data.Role)) {
-                hasAccess = true;
-            }
-        });
+      console.log("Admin panel access:", hasAccess);
 
-        console.log("Admin panel access:", hasAccess);
-        return hasAccess;
+      if (hasAccess) {
+        adminPanelBtn.style.display = "block"; // actually show the button
+      } else {
+        adminPanelBtn.style.display = "none";
+      }
+
+      return hasAccess;
 
     } catch (error) {
-        console.error("Error checking admin panel access:", error);
-        return false;
+      console.error("Error checking admin panel access:", error);
+      adminPanelBtn.style.display = "none";
+      return false;
     }
   }
 
