@@ -7,8 +7,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrioChat-demo v16.20</title>
-  <link rel="icon" type="image/png" href="/assets/icons/favicon16x16.jpg">
+  <title>TrioChat-demo v16.21</title>
   <style>
   body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; display:flex; justify-content:center; align-items:center; height:100vh; transition: background 0.3s, color 0.3s; }
   body.dark-theme { background:#1e1e1e; color:white; }
@@ -310,9 +309,10 @@ async function resolveBadgePathForRole(role) {
   if (!role) return null;
   if (badgePathCache.has(role)) return badgePathCache.get(role);
 
-  const filename = role === "Developer" ? "developer-badge.png"
+  const filename = role === "Founder" ? "founder-badge.png"
                  : role === "Admin" ? "admin-badge.png"
                  : role === "Mod" ? "mod-badge.png"
+                 : role === "Tester" ? "tester-badge.png"
                  : null;
 
   if (!filename) {
@@ -453,11 +453,11 @@ async function resolveBadgePathForRole(role) {
                       fallback = document.createElement("span");
                       fallback.className = "role-fallback";
                       fallback.style.marginLeft = "6px";
-                      fallback.textContent = role === "Developer" ? "🛠️" : role === "Admin" ? "⭐" : "🔧";
+                      fallback.textContent = role === "Founder" ? "👑" : role === "Admin" ? "⭐" : role === "Tester" ? "🪲" : "🔧";
                       usernameSpan.appendChild(fallback);
                     } else {
                       // update emoji if needed
-                      fallback.textContent = role === "Developer" ? "🛠️" : role === "Admin" ? "⭐" : "🔧";
+                      fallback.textContent = role === "Founder" ? "👑" : role === "Admin" ? "⭐" : role === "Tester" ? "🪲" : "🔧";
                     }
                   }
                 } else {
@@ -682,7 +682,9 @@ async function resolveBadgePathForRole(role) {
 
           // Force logout UI
           chatPage.style.display = "none";
-          usernamePage.style.display = "block";
+          usernamePage.style.display = "flex";
+          usernameInput.value = "";
+          errorDiv.textContent = "";
         }
       }
     });
@@ -710,11 +712,10 @@ async function resolveBadgePathForRole(role) {
   const adminUserList = document.getElementById("admin-user-list");
   const closeAdminPanelBtn = document.getElementById("close-admin-panel");
 
-  // Show admin panel button only if current user is Developer/Admin/Mod
   async function checkAdminPanelAccess() {
     const userDoc = await getDoc(doc(db, "usernames", username));
     const role = userDoc.data()?.role || null;
-    if (role === "Developer" || role === "Admin" || role === "Mod") {
+    if (role === "Founder" || role === "Admin" || role === "Mod") {
       adminPanelBtn.style.display = "block";
     }
   }
