@@ -594,7 +594,6 @@ async function resolveBadgePathForRole(role) {
     const name = usernameInput.value.trim();
     if(!name) return;
 
-    // ⬇️ Check ban before continuing
     try {
       await checkBan(name);
     } catch (e) {
@@ -616,7 +615,6 @@ async function resolveBadgePathForRole(role) {
     const name = usernameInput.value.trim();
     if(!name){ alert("Enter a username first!"); return; }
 
-    // ⬇️ Check ban before continuing
     try {
       await checkBan(name);
     } catch (e) {
@@ -650,7 +648,6 @@ async function resolveBadgePathForRole(role) {
         alert("You are banned until " + new Date(data.expiresAtMillis).toLocaleString());
         throw new Error("Banned user cannot log in");
       } else {
-        // Ban expired → cleanup
         await deleteDoc(banRef);
       }
     }
