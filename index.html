@@ -1097,17 +1097,25 @@
 
   // --- Chat ---
   function startChat(room) {
-    if (unsubscribeMessages) unsubscribeMessages(); // stop listening to old room
+    // Stop old listener when switching rooms
+    if (unsubscribeMessages) unsubscribeMessages();
+
     currentRoom = room;
     chatBox.innerHTML = "";
 
     const messagesRef = collection(db, "messages");
-    const q = query(messagesRef, where("room", "==", room), orderBy("timestamp"));
+    const q = query(
+      messagesRef,
+      where("room", "==", room),        // only messages for THIS room
+      orderBy("timestamp", "asc")       // in chronological order
+    );
 
-    unsubscribeMessages = onSnapshot(q, snapshot => {
+    unsubscribeMessages = onSnapshot(q, (snapshot) => {
       chatBox.innerHTML = "";
-      snapshot.forEach(docSnap => {
+      snapshot.forEach((docSnap) => {
         const data = docSnap.data();
+
+        // skip blocked users
         if (blockedUsers.includes(data.username)) return;
 
         const msgDiv = document.createElement("div");
@@ -1299,7 +1307,7 @@
   // Update if user changes system theme
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <div id="version-label">BETA v1.0.1</div>
+  <div id="version-label">BETA v1.0.2</div>
   <button id="status-page-btn">Status Page</button>
   <button id="rules-page-btn">Rules</button>
   </body>
