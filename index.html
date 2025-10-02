@@ -3,7 +3,7 @@
   <head>
   <script>
     console.log("Welcome to TrioChat!")
-    console.warn("This project is still being worked on and is right now in DEMO.")
+    console.warn("This project is still being worked on and is right now in BETA. Version 1.0.1")
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -155,6 +155,22 @@
   transition: background 0.3s;
   }
   #status-page-btn:hover {
+    background: #0056b3;
+  }
+  #rules-page-btn {
+  position: fixed;
+  bottom: 15px;
+  left: 15px;
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 9999;
+  transition: background 0.3s;
+  }
+  #rules-page-btn:hover {
     background: #0056b3;
   }
   #version-label {
@@ -1081,33 +1097,24 @@
 
   // --- Chat ---
   function startChat(room) {
-    const messagesRef = collection(db, "messages");
-    const q = query(messagesRef, orderBy("timestamp"));
+    if (unsubscribeMessages) unsubscribeMessages(); // stop listening to old room
+    currentRoom = room;
+    chatBox.innerHTML = "";
 
-    if (unsubscribeMessages) unsubscribeMessages();
+    const messagesRef = collection(db, "messages");
+    const q = query(messagesRef, where("room", "==", room), orderBy("timestamp"));
 
     unsubscribeMessages = onSnapshot(q, snapshot => {
-      snapshot.docChanges().forEach(change => {
-        if (change.type !== "added") return; // only new messages
-
-        const data = change.doc.data();
-        if (data.room !== room) return;
+      chatBox.innerHTML = "";
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
         if (blockedUsers.includes(data.username)) return;
 
-        const msg = document.createElement("div");
-        msg.classList.add("msg");
-        msg.textContent = `${data.username}: ${data.text}`;
-        chatBox.appendChild(msg);
-
-        // Only notify for truly new messages
-        const msgTime = data.timestamp?.toMillis?.() || Date.now();
-        if (data.username !== username && msgTime > lastTimestamp && document.hidden) {
-          notifyUser(`New message from ${data.username}`, data.text);
-        }
-
-        if (msgTime > lastTimestamp) lastTimestamp = msgTime;
+        const msgDiv = document.createElement("div");
+        msgDiv.classList.add("msg");
+        msgDiv.textContent = `${data.username}: ${data.text}`;
+        chatBox.appendChild(msgDiv);
       });
-
       chatBox.scrollTop = chatBox.scrollHeight;
     });
   }
@@ -1292,8 +1299,9 @@
   // Update if user changes system theme
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <div id="version-label">BETA v1.0.0</div>
+  <div id="version-label">BETA v1.0.1</div>
   <button id="status-page-btn">Status Page</button>
+  <button id="rules-page-btn">Rules</button>
   </body>
   </html>
   <script>console.log("Website has fully loaded!")</script>
