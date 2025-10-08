@@ -3,7 +3,7 @@
   <head>
   <script>
     console.log("Welcome to TrioChat!")
-    console.warn("This project is still being worked on and is right now in BETA. Version 1.0.4")
+    console.warn("This project is still being worked on and is right now in BETA. Version 1.1.0")
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -185,6 +185,22 @@
     pointer-events: none;
     transition: background 0.3s, color 0.3s;
   }
+
+.status-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Segoe UI', sans-serif;
+  margin-left: 20px;
+}
+
+.status-selector select {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
   </style>
   </head>
   <body>
@@ -268,9 +284,18 @@
       <button id="warnings-tab">Warnings</button>
     </div>
 
-    <!-- Tab content containers -->
-    <div id="users-view" style="max-height:400px; overflow-y:auto;"></div>
+  <!-- Tab content containers -->
+  <div id="users-view" style="max-height:400px; overflow-y:auto;"></div>
     <div id="warnings-view" style="max-height:400px; overflow-y:auto; display:none;"></div>
+  </div>
+
+  <div class="status-selector">
+    <label for="user-status">Status:</label>
+    <select id="user-status">
+      <option value="online">Online</option>
+      <option value="away">Away</option>
+      <option value="dnd">DND</option>
+    </select>
   </div>
 
   <audio id="notif-sound" src="assets/sounds/notify.mp3" preload="auto"></audio>
@@ -279,9 +304,8 @@
   let unsubscribeMessages = null;
   let lastTimestamp = Date.now();
 
-  // Apply saved dark mode
   if (localStorage.getItem("darkMode") === "true") {
-    document.body.classList.add("dark-theme");
+    body.classList.add("dark-theme");
   }
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
@@ -537,6 +561,35 @@
           }
         }
       });
+    }
+
+    const statusSelect = document.getElementById("user-status");
+
+    // Load status on page load
+    const savedStatus = localStorage.getItem("userStatus");
+    if (savedStatus) {
+      statusSelect.value = savedStatus;
+      updateUserStatus(savedStatus);
+    }
+
+    // Save status whenever user changes it
+    statusSelect.addEventListener("change", (e) => {
+      const status = e.target.value;
+      localStorage.setItem("userStatus", status);
+      updateUserStatus(status);
+    });
+
+    function updateUserStatus(status) {
+      const body = document.body;
+
+      body.classList.remove("status-online", "status-away", "status-dnd");
+      body.classList.add(`status-${status}`);
+
+      if (status === "dnd") {
+        window.notificationsEnabled = false;
+      } else {
+        window.notificationsEnabled = true;
+      }
     }
 
   // --- Block/unblock ---
@@ -1275,10 +1328,10 @@
     alert("Your login key is: " + key);
   };
 
-  // Dark mode
   darkModeToggleBtn.onclick = () => {
-    const isDark = document.body.classList.toggle("dark-theme");
-    localStorage.setItem("darkMode", isDark ? "true" : "false");
+      body.classList.toggle("dark-theme");
+      const darkModeEnabled = body.classList.contains("dark-theme");
+      localStorage.setItem("darkMode", darkModeEnabled);
   };
 
   // Logout
@@ -1314,7 +1367,7 @@
   // Update if user changes system theme
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <div id="version-label">BETA v1.0.4</div>
+  <div id="version-label">BETA v1.1.0</div>
   <button id="status-page-btn">Status Page</button>
   <button id="rules-page-btn">Rules</button>
   </body>
