@@ -185,6 +185,12 @@
     pointer-events: none;
     transition: background 0.3s, color 0.3s;
   }
+  .button-container {
+    display: flex;
+    gap: 10px; /* spacing between buttons */
+    justify-content: flex-start; /* aligns buttons to the left */
+    align-items: center; /* vertically center if needed */
+  }
   </style>
   </head>
   <body>
@@ -1307,9 +1313,11 @@
   // Update if user changes system theme
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <div id="version-label">BETA v1.0.3</div>
-  <button id="status-page-btn">Status Page</button>
-  <button id="rules-page-btn">Rules</button>
+  <div id="version-label">BETA v1.0.4</div>
+  <div class="button-container">
+    <button id="status-button">Status</button>
+    <button id="rules-button">Fix Rules</button>
+  </div>
   </body>
   </html>
   <script>console.log("Website has fully loaded!")</script>
