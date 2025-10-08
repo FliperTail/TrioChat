@@ -160,7 +160,7 @@
   #rules-page-btn {
   position: fixed;
   bottom: 15px;
-  left: 150px;
+  left: 200px;
   padding: 10px 20px;
   background: #007bff;
   color: white;
@@ -171,6 +171,22 @@
   transition: background 0.3s;
   }
   #rules-page-btn:hover {
+    background: #0056b3;
+  }
+  #updates-page-btn {
+  position: fixed;
+  bottom: 15px;
+  left: 150px;
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 9999;
+  transition: background 0.3s;
+  }
+  #updates-page-btn:hover {
     background: #0056b3;
   }
   #version-label {
@@ -185,22 +201,6 @@
     pointer-events: none;
     transition: background 0.3s, color 0.3s;
   }
-
-.status-selector {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: 'Segoe UI', sans-serif;
-  margin-left: 20px;
-}
-
-.status-selector select {
-  padding: 5px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
-
   </style>
   </head>
   <body>
@@ -284,18 +284,8 @@
       <button id="warnings-tab">Warnings</button>
     </div>
 
-  <!-- Tab content containers -->
   <div id="users-view" style="max-height:400px; overflow-y:auto;"></div>
     <div id="warnings-view" style="max-height:400px; overflow-y:auto; display:none;"></div>
-  </div>
-
-  <div class="status-selector">
-    <label for="user-status">Status:</label>
-    <select id="user-status">
-      <option value="online">Online</option>
-      <option value="away">Away</option>
-      <option value="dnd">DND</option>
-    </select>
   </div>
 
   <audio id="notif-sound" src="assets/sounds/notify.mp3" preload="auto"></audio>
@@ -561,35 +551,6 @@
           }
         }
       });
-    }
-
-    const statusSelect = document.getElementById("user-status");
-
-    // Load status on page load
-    const savedStatus = localStorage.getItem("userStatus");
-    if (savedStatus) {
-      statusSelect.value = savedStatus;
-      updateUserStatus(savedStatus);
-    }
-
-    // Save status whenever user changes it
-    statusSelect.addEventListener("change", (e) => {
-      const status = e.target.value;
-      localStorage.setItem("userStatus", status);
-      updateUserStatus(status);
-    });
-
-    function updateUserStatus(status) {
-      const body = document.body;
-
-      body.classList.remove("status-online", "status-away", "status-dnd");
-      body.classList.add(`status-${status}`);
-
-      if (status === "dnd") {
-        window.notificationsEnabled = false;
-      } else {
-        window.notificationsEnabled = true;
-      }
     }
 
   // --- Block/unblock ---
@@ -1355,6 +1316,13 @@
     }
   });
 
+  document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("updates-page-btn");
+    if (btn) {
+      btn.onclick = () => window.location.href = "pages/updates.html";
+    }
+  });
+
   function updateVersionLabelTheme() {
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     document.body.classList.toggle('dark-theme', isDark);
@@ -1370,6 +1338,7 @@
   <div id="version-label">BETA v1.1.0</div>
   <button id="status-page-btn">Status Page</button>
   <button id="rules-page-btn">Rules</button>
+  <button id="updates-page-btn">Updates</button>
   </body>
   </html>
   <script>console.log("Website has fully loaded!")</script>
