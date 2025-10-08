@@ -774,26 +774,24 @@
   const closeAdminPanelBtn = document.getElementById("close-admin-panel");
 
   async function checkAdminPanelAccess() {
-    try {
-      const userDoc = await getDoc(doc(db, "usernames", username));
-      const allowedRoles = ["Founder", "Admin", "Mod"];
-      
-      if (!userDoc.exists()) return false;
+      if (!username) return false; // make sure user is logged in
 
-      const data = userDoc.data();
-      const role = data?.role || data?.Role; // adjust key if needed
+      try {
+          const userDoc = await getDoc(doc(db, "usernames", username));
+          if (!userDoc.exists()) return false;
 
-      const hasAccess = allowedRoles.includes(role);
-      console.log("Admin panel access:", hasAccess);
-      
-      // Show or hide button
-      adminPanelBtn.style.display = hasAccess ? "block" : "none";
+          const data = userDoc.data();
+          const role = (data?.role || data?.Role || "").toString(); // ensure string
+          const allowedRoles = ["Founder","Admin","Mod"];
+          const hasAccess = allowedRoles.includes(role);
 
-      return hasAccess;
-    } catch (error) {
-      console.error("Error checking admin panel access:", error);
-      return false;
-    }
+          adminPanelBtn.style.display = hasAccess ? "block" : "none";
+          return hasAccess;
+      } catch (err) {
+          console.error("Error checking admin panel access:", err);
+          adminPanelBtn.style.display = "none";
+          return false;
+      }
   }
 
   adminPanelBtn.onclick = () => {
