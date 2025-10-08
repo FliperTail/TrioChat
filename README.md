@@ -1,7 +1,5 @@
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/A0A61IAEQ5)
 
-# THERE IS A BUG RIGHT NOW THAT THE CHAT MESSAGES DO NOT SHOW!
-
 # TrioChat BETA
 > A new chatting platform with rooms to connect to new people! This entire project is open source!
 

@@ -1064,8 +1064,13 @@
   }
 
   function setActiveRoomButton(){
-    roomButtons.forEach(btn=>{
-      btn.classList.toggle("active", btn.dataset.room===currentRoom);
+    roomButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        roomButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const newRoom = btn.dataset.room;
+        startChat(newRoom);
+      });
     });
   }
 
@@ -1096,28 +1101,25 @@
   }
 
   // --- Chat ---
-  function startChat(room) {
-    // Stop old listener when switching rooms
+  function startChat(roomName) {
+    // Unsubscribe from any previous listener
     if (unsubscribeMessages) unsubscribeMessages();
 
-    currentRoom = room;
+    currentRoom = roomName;
     chatBox.innerHTML = "";
 
     const messagesRef = collection(db, "messages");
     const q = query(
       messagesRef,
-      where("room", "==", room),        // only messages for THIS room
-      orderBy("timestamp", "asc")       // in chronological order
+      where("room", "==", currentRoom),
+      orderBy("timestamp")
     );
 
     unsubscribeMessages = onSnapshot(q, (snapshot) => {
-      chatBox.innerHTML = "";
+      chatBox.innerHTML = ""; // clear and rebuild
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-
-        // skip blocked users
         if (blockedUsers.includes(data.username)) return;
-
         const msgDiv = document.createElement("div");
         msgDiv.classList.add("msg");
         msgDiv.textContent = `${data.username}: ${data.text}`;
@@ -1307,7 +1309,7 @@
   // Update if user changes system theme
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <div id="version-label">BETA v1.0.2</div>
+  <div id="version-label">BETA v1.0.3</div>
   <button id="status-page-btn">Status Page</button>
   <button id="rules-page-btn">Rules</button>
   </body>
