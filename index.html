@@ -293,6 +293,7 @@
   let cachedMessages = [];
   let unsubscribeMessages = null;
   let lastTimestamp = Date.now();
+  const body = document.body;
 
   if (localStorage.getItem("darkMode") === "true") {
     body.classList.add("dark-theme");
