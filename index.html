@@ -3,7 +3,7 @@
   <head>
   <script>
     console.log("Welcome to TrioChat!")
-    console.warn("This project is still being worked on and is right now in BETA. Version 1.1.0")
+    console.warn("This project is still being worked on and is right now in BETA. Version 1.2.0")
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -160,7 +160,7 @@
   #rules-page-btn {
   position: fixed;
   bottom: 15px;
-  left: 250px;
+  left: 130px;
   padding: 10px 20px;
   background: #007bff;
   color: white;
@@ -176,7 +176,7 @@
   #updates-page-btn {
   position: fixed;
   bottom: 15px;
-  left: 150px;
+  left: 207px;
   padding: 10px 20px;
   background: #007bff;
   color: white;
@@ -201,6 +201,36 @@
     pointer-events: none;
     transition: background 0.3s, color 0.3s;
   }
+  /* --- Top Bar --- */
+  #top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 15px;
+    background: #f8f9fa;       /* light mode background */
+    color: #000;               /* light mode text */
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    z-index: 10000;            /* make sure it's above everything */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* When dark mode is active */
+  .dark-theme #top-bar {
+    background: #121212;  /* darker, matches your dark theme */
+    color: #ffffff;       /* white text */
+    box-shadow: 0 2px 5px rgba(255,255,255,0.1);
+  }
+  /* Push chat container down so bar doesn't overlap */
+  #chat-page {
+    margin-top: 50px; /* space for the bar */
+  }
   </style>
   </head>
   <body>
@@ -222,7 +252,6 @@
       <button class="room-btn" data-room="Room 2">Room 2</button>
       <button class="room-btn" data-room="Room 3">Room 3</button>
       <button id="create-room-btn" style="background:#28a745;color:white;">+ Create Room</button>
-      <button id="settings-btn" style="background:#6c757d;color:white;">Settings</button>
     </div>
     <div class="chat-container">
       <div id="user-list">
@@ -242,20 +271,28 @@
     </div>
   </div>
 
+  <div id="top-bar">
+    <span id="datetime"></span>
+    <button id="settings-btn" style="background:#6c757d;color:white;">Settings</button>
+  </div>
+
   <div id="settings-popup">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
       <h3 style="margin:0; flex:1; text-align:center;">Settings</h3>
-      <button id="close-settings-top" style="
-        background:#dc3545;
-        color:white;
-        border:none;
-        border-radius:5px;
-        width:30px;
-        height:30px;
-        font-size:18px;
-        cursor:pointer;
-        margin-left:10px;
-      ">X</button>
+    <button id="close-settings-top" style="
+      background:#dc3545;
+      color:white;
+      border:none;
+      border-radius:5px;
+      width:30px;
+      height:30px;
+      font-size:18px;
+      cursor:pointer;
+      margin-left:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    ">X</button>
     </div>
     <button id="generate-key-btn-settings">Generate Login Key</button>
     <button id="dark-mode-toggle">Toggle Dark Mode</button>
@@ -278,7 +315,6 @@
       <button id="close-admin-panel">X</button>
     </div>
 
-    <!-- Tab buttons -->
     <div style="display:flex; gap:5px; margin-bottom:10px;">
       <button id="users-tab">Users</button>
       <button id="warnings-tab">Warnings</button>
@@ -348,6 +384,26 @@
   let currentStatus = "online";
   let onlineUsersInitialized = false;
   const badgePathCache = new Map();
+
+  const topBar = document.getElementById("top-bar");
+  const datetimeElem = document.getElementById("datetime");
+
+  function updateDateTime() {
+    if (!datetimeElem) return;
+    const now = new Date();
+    const formatted = now.toLocaleString([], {
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    datetimeElem.textContent = formatted;
+  }
+
+  setInterval(updateDateTime, 1000);
+  updateDateTime();
+
+if (topBar) topBar.style.display = "none";
 
   function testImageUrl(src, timeout = 5000) {
     return new Promise(resolve => {
@@ -733,6 +789,7 @@
     username = name;
     usernamePage.style.display="none";
     chatPage.style.display="flex";
+    if (topBar) topBar.style.display = "flex";
     statusUsername.textContent = "You: " + username;
     setDoc(doc(db,"onlineUsers",username), { username, lastSeen:serverTimestamp(), status: currentStatus });
     updateOnlineUsers();
@@ -1333,10 +1390,9 @@
   // Run on page load
   updateVersionLabelTheme();
 
-  // Update if user changes system theme
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <div id="version-label">BETA v1.1.0</div>
+  <div id="version-label">BETA v1.2.0</div>
   <button id="status-page-btn">Status Page</button>
   <button id="rules-page-btn">Rules</button>
   <button id="updates-page-btn">Updates</button>
