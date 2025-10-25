@@ -24,10 +24,11 @@ Rules will most likely change!
 
 ### Information
 > Basic information and basic things to know
+> **Domain was recently changed legacy website is still supported to keep login data!**
+> **LEGACY: [TrioChat Legacy](https://flipertail.github.io/TrioChat/)**
 
-**Domain was recently changed legacy website is still supported to keep login data!**
-**LEGACY: [TrioChat Legacy](https://flipertail.github.io/TrioChat/)**
-
+- Support email: <support@triochat.qzz.io>
+- Account related problems: <account-recovery@triochat.qzz.io>
 - This project isn't suppsoed to replace any chat platfrom like discord
 - Adding photo uploads is not planned to come soon anytime
 - Making custom clients is allowed but must be open source stated by the license
