@@ -3,7 +3,7 @@
   <head>
   <script>
     console.log("Welcome to TrioChat!")
-    console.warn("This project is still being worked on and is right now in BETA. Version 1.2.0")
+    console.warn("This project is still being worked on and is right now in BETA. Version 1.2.1")
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -335,8 +335,13 @@
     body.classList.add("dark-theme");
   }
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-  import { getFirestore, collection, doc, getDoc, setDoc, addDoc, getDocs, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { 
+      getFirestore, collection, doc, getDoc, setDoc, addDoc, getDocs, 
+      serverTimestamp, query, orderBy, onSnapshot, deleteDoc, where 
+    } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+      // G99KFB05
 
   const firebaseConfig = {
     apiKey: "AIzaSyCH3EXgZ9FN_t_tEW10uR5YmHiX_pabzew",
@@ -349,6 +354,10 @@
   };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
+    signInAnonymously(auth)
+      .then(() => console.log("Signed in anonymously"))
+      .catch((error) => console.error("Auth error:", error));
 
   // DOM
   const usernamePage = document.getElementById("username-page");
@@ -1392,7 +1401,7 @@ if (topBar) topBar.style.display = "none";
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateVersionLabelTheme);
   </script>
-  <div id="version-label">BETA v1.2.0</div>
+  <div id="version-label">BETA v1.2.1</div>
   <button id="status-page-btn">Status Page</button>
   <button id="rules-page-btn">Rules</button>
   <button id="updates-page-btn">Updates</button>
