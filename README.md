@@ -24,8 +24,9 @@ Rules will most likely change!
 
 ### Information
 > Basic information and basic things to know
-> **Domain was recently changed legacy website is still supported to keep login data!**
-> **LEGACY: [TrioChat Legacy](https://flipertail.github.io/TrioChat/)**
+> 
+> **Domain was recently changed legacy website is still supported. All login data was cleared of October 25, 2025. Sorry for not communicating this!**
+> **LEGACY: [TrioChat Legacy](https://voxelra.github.io/TrioChat/)**
 
 - Support email: <support@triochat.qzz.io>
 - Account related problems: <account-recovery@triochat.qzz.io>
